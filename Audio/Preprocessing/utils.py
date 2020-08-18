@@ -57,15 +57,14 @@ def separate_all_audios_on_accompaniment_and_vocals_by_spleeter(path_to_folder,p
         separate_one_audio_on_accompaniment_and_vocals_by_spleeter(path_to_folder + file, audio_sample_rate, path_to_destination_directory)
 
 def extract_mfcc_from_audio(path_to_audio, n_fft,hop_length, n_mfcc, n_mels):
-    with wave.open(path_to_audio, 'rb') as f:
-        sample_rate = f.getframerate()
+    sample_rate, f = wavfile.read(path_to_audio)
     y, sample_rate = librosa.load(path_to_audio, sr=sample_rate)
     mfcc_librosa = librosa.feature.mfcc(y=y, sr=sample_rate, n_fft=n_fft,
                                         n_mfcc=n_mfcc, n_mels=n_mels,
                                         hop_length=hop_length,
                                         fmin=0, fmax=None)
     return mfcc_librosa
-    # TODO: dodelay
+
 
 
 
