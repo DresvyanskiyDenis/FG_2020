@@ -4,6 +4,9 @@ import pandas as pd
 import numpy as np
 from scipy.io import wavfile
 
+# TODO: реализовать функцию загрузки данных и лэйюлов в классе так, чтобы можно было падавать любую функцию в них.
+from sklearn.metrics import accuracy_score, f1_score
+
 
 def load_labels(path_to_labels):
     f = open(path_to_labels, 'r')
@@ -90,10 +93,7 @@ class Database():
         :return: None
         """
         for i in range(len(self.data_instances)):
-            try:
-                self.data_instances[i].cut_data_and_labels_on_windows(window_size, window_step)
-            except Exception:
-                a=1+2
+            self.data_instances[i].cut_data_and_labels_on_windows(window_size, window_step)
 
     def get_all_concatenated_cutted_data_and_labels(self):
         """This function concatenates cutted data and labels of all elements of list self.data_instances
@@ -112,6 +112,13 @@ class Database():
         result_data=np.vstack(tmp_data)
         result_labels = np.vstack(tmp_labels)
         return result_data, result_labels
+
+    def get_all_concatenated_cutted_labels_timesteps(self):
+        tmp_timesteps=[]
+        for i in range(len(self.data_instances)):
+            tmp_timesteps.append(self.data_instances[i].cutted_labels_timesteps)
+        result_timesteps=np.vstack(tmp_timesteps)
+        return result_timesteps
 
     def reduce_labels_frame_rate(self, needed_frame_rate):
         """This function reduce labels frame rate to needed frame rate by taking every (second, thirs and so on) elements from
@@ -159,6 +166,7 @@ class Database():
             instance.align_number_of_labels_and_data()
         # cutting
         self.cut_all_instances(window_size, window_step)
+
 
 
 
@@ -243,11 +251,18 @@ class Database_instance():
         :param window_step: int, step of window
         :return: 2D ndarray, shape=(num_windows, window_size)
         """
-        num_windows=how_many_windows_do_i_need(sequence.shape[0], window_size, window_step)
+        num_windows = how_many_windows_do_i_need(sequence.shape[0], window_size, window_step)
         if len(sequence.shape)>1:
             cutted_data=np.zeros(shape=(num_windows, window_size)+sequence.shape[1:])
         else:
             cutted_data = np.zeros(shape=(num_windows, window_size))
+
+        # if sequence has length less than whole window
+        if sequence.shape[0]<window_size:
+            cutted_data[0, :sequence.shape[0]]=sequence
+            return cutted_data
+
+
         start_idx=0
         # start of cutting
         for idx_window in range(num_windows-1):
@@ -362,28 +377,47 @@ class Metric_calculator():
 
     """
 
-    def __init__(self, cutted_predictions, cutted_labels_timesteps):
-        self.ground_truth=None
+    def __init__(self, cutted_predictions, cutted_labels_timesteps, ground_truth):
+        self.ground_truth=ground_truth
         self.predictions=None
         self.cutted_predictions=cutted_predictions
         self.cutted_labels_timesteps=cutted_labels_timesteps
 
-    def average_cutted_predictions_by_timestep(self):
+    def average_cutted_predictions_by_timestep(self, mode='regression'):
         """This function averages cutted predictions. For more info see description of class
         :return: None
         """
-        cutted_predictions_flatten=self.cutted_predictions.flatten()[..., np.newaxis]
-        cutted_labels_timesteps_flatten=self.cutted_labels_timesteps.flatten()[..., np.newaxis]
-        dataframe_for_avg=pd.DataFrame(columns=['prediction','timestep'], data=np.concatenate((cutted_predictions_flatten, cutted_labels_timesteps_flatten), axis=1))
-        dataframe_for_avg=dataframe_for_avg.groupby(by=['timestep']).mean()
-        self.predictions=dataframe_for_avg['prediction'].values
+        if mode=='regression':
+            cutted_predictions_flatten=self.cutted_predictions.flatten()[..., np.newaxis]
+            cutted_labels_timesteps_flatten=self.cutted_labels_timesteps.flatten()[..., np.newaxis]
+            dataframe_for_avg=pd.DataFrame(columns=['prediction','timestep'], data=np.concatenate((cutted_predictions_flatten, cutted_labels_timesteps_flatten), axis=1))
+            dataframe_for_avg=dataframe_for_avg.groupby(by=['timestep']).mean()
+            self.predictions=dataframe_for_avg['prediction'].values
+        elif mode=='categorical_probabilities':
+            # TODO: do it in more efficient way
+            timesteps=np.unique(self.cutted_labels_timesteps)
+            result_probabilities=np.zeros(shape=self.ground_truth.shape+(self.cutted_predictions.shape[-1],))
+            for i in range(timesteps.shape[0]):
+                tmp_values=self.cutted_predictions[self.cutted_labels_timesteps==timesteps[i]]
+                result_probabilities[i]=np.mean(tmp_values, axis=0).reshape((1,-1))
+            self.predictions=result_probabilities
+            self.predictions=np.argmax(self.predictions, axis=-1)
 
-    def calculate_AUC_ROC(self, ground_truth):
-        """This function calculates AUC_ROC based on provided ground_truth labels and saved earlier (calculated by
-        average_cutted_predictions_by_timestep function or just directly set via self.predictions field) predictions
+    def calculate_FG_2020_categorical_score_across_all_instances(self, instances):
+        # TODO: peredelat na bolee logichniy lad. Eto poka chto bistroo reshenie
+        ground_truth_all=np.zeros((0,))
+        predictions_all=np.zeros((0,))
+        for instance in instances:
+            ground_truth_all=np.concatenate((ground_truth_all, instance.labels))
+            predictions_all = np.concatenate((predictions_all, instance.predictions))
+        return f1_score(ground_truth_all, predictions_all, average='macro')
 
-        :param ground_truth: ndarray, shape=(num_labels,)
-        :return: float, ROC_AUC score for provided data
-        """
-        self.ground_truth=ground_truth
-        return roc_auc_score(self.ground_truth, self.predictions)
+
+    def calculate_accuracy(self):
+        return accuracy_score(self.ground_truth, self.predictions)
+
+    def calculate_f1_score(self, mode='macro'):
+        return f1_score(self.ground_truth, self.predictions, average=mode)
+
+    def calculate_FG_2020_categorical_score(self, f1_score_mode='macro'):
+        return 0.67*self.calculate_f1_score(f1_score_mode)+0.33*self.calculate_accuracy()
