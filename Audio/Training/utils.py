@@ -7,6 +7,11 @@ from scipy.io import wavfile
 # TODO: реализовать функцию загрузки данных и лэйюлов в классе так, чтобы можно было падавать любую функцию в них.
 from sklearn.metrics import accuracy_score, f1_score
 
+def generate_weights(amount_class_array):
+    result_weights=amount_class_array/np.sum(amount_class_array)
+    result_weights=1./result_weights
+    result_weights=result_weights/np.sum(result_weights)
+    return result_weights
 
 def load_labels(path_to_labels):
     f = open(path_to_labels, 'r')
@@ -113,6 +118,24 @@ class Database():
         result_labels = np.vstack(tmp_labels)
         return result_data, result_labels
 
+    def get_all_concatenated_data_and_labels(self):
+        """This function concatenates data and labels of all elements of list self.data_instances
+           Every element of list is Database_instance() class, which contains field data and labels
+
+        :return: 2D ndarray, shape=(num_instances_in_list*num_per_instance, data_window_size),
+                    concatenated data of every element of list self.data_instances
+                 2D ndarray, shape=(num_instances_in_list*num_per_instance, labels_window_size),
+                    concatenated labels of every element of list self.data_instances
+        """
+        tmp_data=[]
+        tmp_labels=[]
+        for i in range(len(self.data_instances)):
+            tmp_data.append(self.data_instances[i].data)
+            tmp_labels.append(self.data_instances[i].labels.reshape((-1,1)))
+        result_data=np.vstack(tmp_data)
+        result_labels = np.vstack(tmp_labels).reshape((-1))
+        return result_data, result_labels
+
     def get_all_concatenated_cutted_labels_timesteps(self):
         tmp_timesteps=[]
         for i in range(len(self.data_instances)):
@@ -164,10 +187,21 @@ class Database():
         # aligning labels
         for instance in self.data_instances:
             instance.align_number_of_labels_and_data()
+        # delete all -1 labels
+        for instance in self.data_instances:
+            instance.data=instance.generate_array_without_class(instance.data, -1)
+            instance.labels_timesteps = instance.generate_array_without_class(instance.labels_timesteps, -1)
+            instance.labels = instance.generate_array_without_class(instance.labels, -1)
+
+        # check if some file have 0 labels (this could be, if all labels were -1. You can face it in FG_2020 competition)
+        tmp_list=[]
+        for instance in self.data_instances:
+            if instance.labels.shape[0]!=0:
+                tmp_list.append(instance)
+        self.data_instances=tmp_list
+
         # cutting
         self.cut_all_instances(window_size, window_step)
-
-
 
 
 
@@ -313,15 +347,6 @@ class Database_instance():
         """
         self.labels, self.labels_frame_rate=load_labels(path_to_labels)
 
-    def load_and_preprocess_data_and_labels(self, path_to_data, path_to_labels):
-        """This function loads data and labels from corresponding paths
-
-        :param path_to_data: String
-        :param path_to_labels: String
-        :return: None
-        """
-        self.load_data(path_to_data)
-        self.load_labels(path_to_labels)
 
     def generate_timesteps_for_labels(self):
         """This function generates timesteps for labels with corresponding labels_frame_rate
@@ -343,6 +368,10 @@ class Database_instance():
             aligned_labels[self.labels.shape[0]:] = value_to_fill
         self.labels=aligned_labels
         self.generate_timesteps_for_labels()
+
+    def generate_array_without_class(self, arr, class_num):
+        indexes=self.labels!=class_num
+        return arr[indexes]
 
 
 
@@ -394,14 +423,15 @@ class Metric_calculator():
             dataframe_for_avg=dataframe_for_avg.groupby(by=['timestep']).mean()
             self.predictions=dataframe_for_avg['prediction'].values
         elif mode=='categorical_probabilities':
-            # TODO: do it in more efficient way
-            timesteps=np.unique(self.cutted_labels_timesteps)
-            result_probabilities=np.zeros(shape=self.ground_truth.shape+(self.cutted_predictions.shape[-1],))
-            for i in range(timesteps.shape[0]):
-                tmp_values=self.cutted_predictions[self.cutted_labels_timesteps==timesteps[i]]
-                result_probabilities[i]=np.mean(tmp_values, axis=0).reshape((1,-1))
-            self.predictions=result_probabilities
-            self.predictions=np.argmax(self.predictions, axis=-1)
+            cutted_predictions_flatten=self.cutted_predictions.reshape((-1, self.cutted_predictions.shape[-1]))
+            cutted_labels_timesteps_flatten=self.cutted_labels_timesteps.reshape((-1,1))
+            dataframe_for_avg=pd.DataFrame(data=np.concatenate((cutted_labels_timesteps_flatten, cutted_predictions_flatten), axis=1))
+            dataframe_for_avg=dataframe_for_avg.rename(columns={0:'timestep'})
+            dataframe_for_avg = dataframe_for_avg.groupby(by=['timestep']).mean()
+            predictions_probabilities=dataframe_for_avg.iloc[:].values
+            predictions_probabilities=np.argmax(predictions_probabilities, axis=-1)
+            self.predictions=predictions_probabilities
+
 
     def calculate_FG_2020_categorical_score_across_all_instances(self, instances):
         # TODO: peredelat na bolee logichniy lad. Eto poka chto bistroo reshenie
