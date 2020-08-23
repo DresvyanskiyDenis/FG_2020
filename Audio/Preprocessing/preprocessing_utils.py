@@ -68,15 +68,24 @@ if __name__ == "__main__":
 
     # extraction MFCCs
     # params
-    path_to_separated_audio='D:\\Databases\\AffWild2\\Separated_audios\\'
-    path_to_output_audio='D:\\Databases\\AffWild2\\MFCC_features\\'
-    n_fft=6400
-    hop_length=3200
-    n_mfcc=23
-    n_mels=128
-    extract_mfcc_from_all_audios(path_to_dir_audio=path_to_separated_audio,
-                                 path_to_output=path_to_output_audio,
-                                 n_fft=n_fft,
-                                 hop_length=hop_length,
-                                 n_mfcc=n_mfcc,
-                                 n_mels=n_mels)
+    n_fft_params=[1600, 3200, 4800, 6400]
+    n_mfcc_params=[13,23,30]
+    n_mels_params=[32,64,128]
+    for n_fft in n_fft_params:
+        for n_mfcc in n_mfcc_params:
+            for n_mels in n_mels_params:
+
+                path_to_separated_audio='D:\\Databases\\AffWild2\\Separated_audios\\'
+                path_to_output_audio='D:\\Databases\\AffWild2\\MFCC_features\\'
+                #n_fft=3200
+                hop_length=3200
+                #n_mfcc=23
+                #n_mels=128
+                if not os.path.exists(path_to_output_audio+"mfcc_%i_n_fft_%i_hop_length_%i_n_mels_%i"%(n_mfcc, n_fft,hop_length,n_mels)+'\\'):
+                    os.mkdir(path_to_output_audio+"mfcc_%i_n_fft_%i_hop_length_%i_n_mels_%i"%(n_mfcc, n_fft,hop_length,n_mels)+'\\')
+                extract_mfcc_from_all_audios(path_to_dir_audio=path_to_separated_audio,
+                                             path_to_output=path_to_output_audio+"mfcc_%i_n_fft_%i_hop_length_%i_n_mels_%i"%(n_mfcc, n_fft,hop_length,n_mels)+'\\',
+                                             n_fft=n_fft,
+                                             hop_length=hop_length,
+                                             n_mfcc=n_mfcc,
+                                             n_mels=n_mels)
