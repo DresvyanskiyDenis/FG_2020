@@ -5,6 +5,8 @@ import numpy as np
 from scipy.io import wavfile
 
 from sklearn.metrics import accuracy_score, f1_score
+from sklearn.preprocessing import StandardScaler
+
 
 def generate_weights(amount_class_array):
     result_weights=amount_class_array/np.sum(amount_class_array)
@@ -86,9 +88,15 @@ class Database():
         for i in range(len(self.data_instances)):
             self.data_instances[i].cut_data_and_labels_on_windows(window_size, window_step)
 
-    def normalize_data_within_database(self):
-        #TODO: realise it
-        pass
+    def normalize_data_within_database(self, scaler=None, return_scaler=False):
+        data, _ = self.get_all_concatenated_data_and_labels()
+        if scaler==None:
+            scaler=StandardScaler()
+            scaler=scaler.fit(data)
+        for instance in self.data_instances:
+            instance.data=scaler.transform(instance.data)
+        if return_scaler==True:
+            return scaler
 
     def get_all_concatenated_cutted_data_and_labels(self):
         """This function concatenates cutted data and labels of all elements of list self.data_instances
@@ -173,7 +181,7 @@ class Database():
         val_part_data, val_part_labels= concatenated_data[sep_idx:], concatenated_labels[sep_idx:]
         return train_part_data, train_part_labels, val_part_data, val_part_labels
 
-    def prepare_data_for_training(self, window_size, window_step):
+    def prepare_data_for_training(self, window_size, window_step, need_scaling=False, scaler=None, return_scaler=False):
         # aligning labels
         for instance in self.data_instances:
             instance.align_number_of_labels_and_data()
@@ -190,8 +198,14 @@ class Database():
                 tmp_list.append(instance)
         self.data_instances=tmp_list
 
+        # scaling
+        if need_scaling==True:
+            scaler=self.normalize_data_within_database(scaler=scaler, return_scaler=return_scaler)
         # cutting
         self.cut_all_instances(window_size, window_step)
+        # return scaler if need
+        if return_scaler==True:
+            return scaler
 
 
 
@@ -325,18 +339,6 @@ class Database_instance():
         self.cutted_labels = self.cutted_labels.astype('int32')
         self.cutted_labels_timesteps= self.cutted_labels_timesteps.astype('float32')
         return self.cutted_data, self.cutted_labels, self.cutted_labels_timesteps
-
-
-    def load_labels(self, path_to_labels):
-        """This function loads labels for certain, concrete audiofile
-        It exploits load_labels_get_dict() function, which loads and parses all labels from one label-file
-        Then we just take from obtained dictionary labels by needed audio filename.
-        Current solution is computational unefficient, but it is used very rarely
-
-        :param path_to_labels:String
-        :return:None
-        """
-        self.labels, self.labels_frame_rate=load_labels(path_to_labels)
 
 
     def generate_timesteps_for_labels(self):

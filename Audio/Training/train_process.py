@@ -98,7 +98,10 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
                               data_filetype='csv',
                               data_postfix='_vocals')
     train_database.load_all_data_and_labels(loading_data_function=load_data_csv, loading_labels_function=load_labels)
-    train_database.prepare_data_for_training(window_size=window_size, window_step=window_step)
+    train_data_scaler=train_database.prepare_data_for_training(window_size=window_size, window_step=window_step,
+                                                               need_scaling=True,
+                                                               scaler=None,
+                                                               return_scaler=True)
     train_data, train_labels = train_database.get_all_concatenated_cutted_data_and_labels()
 
     # validation
@@ -109,7 +112,10 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
                                    data_filetype='csv',
                                    data_postfix='_vocals')
     validation_database.load_all_data_and_labels(loading_data_function=load_data_csv, loading_labels_function=load_labels)
-    validation_database.prepare_data_for_training(window_size=window_size, window_step=window_step)
+    validation_database.prepare_data_for_training(window_size=window_size, window_step=window_step,
+                                                               need_scaling=True,
+                                                               scaler=train_data_scaler,
+                                                               return_scaler=False)
     validation_data, validation_labels = validation_database.get_all_concatenated_cutted_data_and_labels()
 
     # expand labels to probabilities
@@ -143,7 +149,7 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
     best_result = 100000000
     for epoch in range(epochs):
         # shuffle data
-        permutations=np.permutations(train_data.shape[0])
+        permutations=np.random.permutation(train_data.shape[0])
         train_data, train_labels, sample_weight = train_data[permutations], train_labels[permutations], sample_weight[permutations]
 
         model.fit(train_data, train_labels, epochs=1, batch_size=batch_size, sample_weight=sample_weight)
