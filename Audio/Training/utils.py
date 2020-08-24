@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 from scipy.io import wavfile
 
-# TODO: реализовать функцию загрузки данных и лэйюлов в классе так, чтобы можно было падавать любую функцию в них.
 from sklearn.metrics import accuracy_score, f1_score
 
 def generate_weights(amount_class_array):
@@ -13,20 +12,6 @@ def generate_weights(amount_class_array):
     result_weights=result_weights/np.sum(result_weights)
     return result_weights
 
-def load_labels(path_to_labels):
-    f = open(path_to_labels, 'r')
-    original_sample_rate = int(f.readline().split(':')[-1])
-    f.close()
-    labels=pd.read_csv(path_to_labels, skiprows=1,header=None)
-    return labels.values.reshape((-1,)), original_sample_rate
-
-def load_data(path_to_datafile, filetype):
-    if filetype == 'wav':
-        sample_rate, data = wavfile.read(path_to_datafile)
-        return data, sample_rate
-    elif filetype =='csv':
-        data=pd.read_csv(path_to_datafile ,header=None)
-        return data.values, None
 
 def how_many_windows_do_i_need(length_sequence, window_size, step):
     """This function calculates how many windows do you need
@@ -68,7 +53,7 @@ class Database():
         self.data_filetype=data_filetype
         self.data_postfix=data_postfix
 
-    def load_all_data_and_labels(self):
+    def load_all_data_and_labels(self, loading_data_function, loading_labels_function):
         """This function loads data and labels from folder self.path_to_data and file with path path_to_labels
            For computational efficiency the loading of labels is made as a separate function load_labels_get_dict()
            Every file is represented as instance of class Database_instance(). The data loading realized by Database_instance() class.
@@ -82,8 +67,9 @@ class Database():
         list_labels_filenames=os.listdir(self.path_to_labels)
         for labels_filename in list_labels_filenames:
             instance = Database_instance()
-            instance.load_data(self.path_to_data + labels_filename.split('_left')[0].split('_right')[0].split('.')[0]+self.data_postfix+'.'+self.data_filetype, self.data_filetype)
-            instance.labels, instance.labels_frame_rate=load_labels(self.path_to_labels+labels_filename)
+            instance.loading_data_function=loading_data_function
+            instance.load_data(self.path_to_data + labels_filename.split('_left')[0].split('_right')[0].split('.')[0]+self.data_postfix+'.'+self.data_filetype)
+            instance.labels, instance.labels_frame_rate=loading_labels_function(self.path_to_labels+labels_filename)
             instance.generate_timesteps_for_labels()
             self.data_instances.append(instance)
         self.data_frame_rate=self.data_instances[0].data_frame_rate
@@ -99,6 +85,10 @@ class Database():
         """
         for i in range(len(self.data_instances)):
             self.data_instances[i].cut_data_and_labels_on_windows(window_size, window_step)
+
+    def normalize_data_within_database(self):
+        #TODO: realise it
+        pass
 
     def get_all_concatenated_cutted_data_and_labels(self):
         """This function concatenates cutted data and labels of all elements of list self.data_instances
@@ -227,14 +217,15 @@ class Database_instance():
         self.cutted_labels_timesteps=None
         self.cutted_predictions=None
         self.predictions=None
+        self.loading_data_function=None
 
-    def load_data(self, path_to_data, data_filetype):
+    def load_data(self, path_to_data):
         """ This function load data and corresponding frame rate from wav type file
 
         :param path_to_data: String
         :return: None
         """
-        self.data, self.data_frame_rate=load_data(path_to_data, data_filetype)
+        self.data, self.data_frame_rate=self.loading_data_function(path_to_data)
         self.filename=path_to_data.split('\\')[-1].split('/')[-1].split('.')[0]
 
 
