@@ -73,6 +73,21 @@ def plot_confusion_matrix(y_true, y_pred, classes,
         plt.savefig(path_to_save + 'confusion_matrix.png')
     return ax
 
+def load_labels(path_to_labels):
+    f = open(path_to_labels, 'r')
+    original_sample_rate = int(f.readline().split(':')[-1])
+    f.close()
+    labels=pd.read_csv(path_to_labels, skiprows=1,header=None)
+    return labels.values.reshape((-1,)), original_sample_rate
+
+def load_data_wav(path_to_datafile):
+    sample_rate, data = wavfile.read(path_to_datafile)
+    return data, sample_rate
+
+def load_data_csv(path_to_datafile):
+    data=pd.read_csv(path_to_datafile ,header=None)
+    return data.values, None
+
 def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_validation, path_to_output, window_size, window_step, class_weights_mode='my_realisation'):
     # data params
     path_to_data_train = path_to_data
@@ -82,7 +97,7 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
                               path_to_labels=path_to_labels_train,
                               data_filetype='csv',
                               data_postfix='_vocals')
-    train_database.load_all_data_and_labels()
+    train_database.load_all_data_and_labels(loading_data_function=load_data_csv, loading_labels_function=load_labels)
     train_database.prepare_data_for_training(window_size=window_size, window_step=window_step)
     train_data, train_labels = train_database.get_all_concatenated_cutted_data_and_labels()
 
@@ -93,7 +108,7 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
                                    path_to_labels=path_to_labels_validation,
                                    data_filetype='csv',
                                    data_postfix='_vocals')
-    validation_database.load_all_data_and_labels()
+    validation_database.load_all_data_and_labels(loading_data_function=load_data_csv, loading_labels_function=load_labels)
     validation_database.prepare_data_for_training(window_size=window_size, window_step=window_step)
     validation_data, validation_labels = validation_database.get_all_concatenated_cutted_data_and_labels()
 
