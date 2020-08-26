@@ -79,7 +79,7 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
         sample_weight[mask] = class_weights[i]
 
     best_model = None
-    best_result = 100000000
+    best_result = 0
     for epoch in range(epochs):
         # shuffle data
         permutations=np.random.permutation(train_data.shape[0])
@@ -97,7 +97,7 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
                                               None).calculate_FG_2020_categorical_score_across_all_instances(
             validation_database.data_instances)
         print('epoch:', epoch, 'FG_2020 score, all instances:', validation_result)
-        if validation_result <= best_result:
+        if validation_result >= best_result:
             best_result = validation_result
             model.save_weights(path_to_output+'best_model_weights.h5')
 
