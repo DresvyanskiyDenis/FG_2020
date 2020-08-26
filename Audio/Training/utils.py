@@ -181,15 +181,16 @@ class Database():
         val_part_data, val_part_labels= concatenated_data[sep_idx:], concatenated_labels[sep_idx:]
         return train_part_data, train_part_labels, val_part_data, val_part_labels
 
-    def prepare_data_for_training(self, window_size, window_step, need_scaling=False, scaler=None, return_scaler=False):
+    def prepare_data_for_training(self, window_size, window_step, delete_value=-1, need_scaling=False, scaler=None, return_scaler=False):
         # aligning labels
         for instance in self.data_instances:
             instance.align_number_of_labels_and_data()
         # delete all -1 labels
-        for instance in self.data_instances:
-            instance.data=instance.generate_array_without_class(instance.data, -1)
-            instance.labels_timesteps = instance.generate_array_without_class(instance.labels_timesteps, -1)
-            instance.labels = instance.generate_array_without_class(instance.labels, -1)
+        if delete_value!=None:
+            for instance in self.data_instances:
+                instance.data=instance.generate_array_without_class(instance.data, delete_value)
+                instance.labels_timesteps = instance.generate_array_without_class(instance.labels_timesteps, delete_value)
+                instance.labels = instance.generate_array_without_class(instance.labels, delete_value)
 
         # check if some file have 0 labels (this could be, if all labels were -1. You can face it in FG_2020 competition)
         tmp_list=[]
@@ -426,13 +427,16 @@ class Metric_calculator():
             self.predictions=predictions_probabilities
 
 
-    def calculate_FG_2020_categorical_score_across_all_instances(self, instances):
+    def calculate_FG_2020_categorical_score_across_all_instances(self, instances, delete_value=-1):
         # TODO: peredelat na bolee logichniy lad. Eto poka chto bistroo reshenie
         ground_truth_all=np.zeros((0,))
         predictions_all=np.zeros((0,))
         for instance in instances:
             ground_truth_all=np.concatenate((ground_truth_all, instance.labels))
             predictions_all = np.concatenate((predictions_all, instance.predictions))
+        mask=ground_truth_all!=delete_value
+        ground_truth_all=ground_truth_all[mask]
+        predictions_all=predictions_all[mask]
         return f1_score(ground_truth_all, predictions_all, average='macro')
 
 

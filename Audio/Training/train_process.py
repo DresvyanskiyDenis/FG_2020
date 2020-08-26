@@ -113,6 +113,7 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
                                    data_postfix='_vocals')
     validation_database.load_all_data_and_labels(loading_data_function=load_data_csv, loading_labels_function=load_labels)
     validation_database.prepare_data_for_training(window_size=window_size, window_step=window_step,
+                                                               delete_value=None,
                                                                need_scaling=True,
                                                                scaler=train_data_scaler,
                                                                return_scaler=False)
