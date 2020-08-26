@@ -26,7 +26,7 @@ def LSTM_model(input_shape, num_classes):
     model = tf.keras.Sequential()
     model.add(tf.keras.layers.Masking(input_shape=input_shape, mask_value=0.))
     model.add(tf.keras.layers.LSTM(128, return_sequences=True))
-    model.add(tf.keras.layers.LSTM(64, return_sequences=True))
+    model.add(tf.keras.layers.LSTM(128, return_sequences=True))
     model.add(tf.keras.layers.Dense(num_classes, activation='softmax'))
     print(model.summary())
     return model
