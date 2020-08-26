@@ -1,3 +1,6 @@
+import math
+
+from Audio.Preprocessing.labels_utils import extend_sample_rate_of_labels
 from Audio.Training.utils import how_many_windows_do_i_need
 import numpy as np
 
@@ -141,9 +144,13 @@ class Database_instance():
         self.labels_timesteps=timesteps
 
     def align_number_of_labels_and_data(self):
-        aligned_labels = np.zeros(shape=(self.data.shape[0]), dtype='int32')
-        if self.data.shape[0] <= self.labels.shape[0]:
-            aligned_labels[:] = self.labels[:self.data.shape[0]]
+        if self.data_frame_rate==self.labels_frame_rate:
+            new_shape_labels=self.data.shape[0]
+        else:
+            new_shape_labels=int(math.ceil(self.data.shape[0]/self.data_frame_rate*self.labels_frame_rate))
+        aligned_labels = np.zeros(shape=(new_shape_labels), dtype='int32')
+        if new_shape_labels <= self.labels.shape[0]:
+            aligned_labels[:] = self.labels[:new_shape_labels]
         else:
             aligned_labels[:self.labels.shape[0]] = self.labels[:]
             value_to_fill = self.labels[-1]
@@ -151,6 +158,11 @@ class Database_instance():
         self.labels=aligned_labels
         self.generate_timesteps_for_labels()
 
-    def generate_array_without_class(self, arr, class_num):
+    def generate_array_without_class(self, arr,arr_frame_rate, class_num):
+        # TODO: upgrade this function in more efficient and explicit way
         indexes=self.labels!=class_num
+        if arr_frame_rate!=self.labels_frame_rate:
+            indexes=extend_sample_rate_of_labels(indexes, self.labels_frame_rate, arr_frame_rate).astype('bool')
+            indexes=indexes[:arr.shape[0]]
         return arr[indexes]
+

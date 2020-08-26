@@ -151,9 +151,9 @@ class Database():
         # delete all -1 labels
         if delete_value!=None:
             for instance in self.data_instances:
-                instance.data=instance.generate_array_without_class(instance.data, delete_value)
-                instance.labels_timesteps = instance.generate_array_without_class(instance.labels_timesteps, delete_value)
-                instance.labels = instance.generate_array_without_class(instance.labels, delete_value)
+                instance.data=instance.generate_array_without_class(instance.data,instance.data_frame_rate, delete_value)
+                instance.labels_timesteps = instance.generate_array_without_class(instance.labels_timesteps,instance.labels_frame_rate, delete_value)
+                instance.labels = instance.generate_array_without_class(instance.labels,instance.labels_frame_rate, delete_value)
 
         # check if some file have 0 labels (this could be, if all labels were -1. You can face it in FG_2020 competition)
         tmp_list=[]

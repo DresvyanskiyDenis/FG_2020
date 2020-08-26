@@ -109,6 +109,9 @@ def load_labels(path_to_labels):
 
 def load_data_wav(path_to_datafile):
     sample_rate, data = wavfile.read(path_to_datafile)
+    # if we have 2 channels in audio (stereo)
+    if len(data.shape)>1:
+        data=data[:,0].reshape((-1,1))
     return data, sample_rate
 
 def load_data_csv(path_to_datafile):
