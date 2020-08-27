@@ -162,6 +162,8 @@ class Database():
                 instance.data=instance.generate_array_without_class(instance.data,instance.data_frame_rate, delete_value)
                 instance.labels_timesteps = instance.generate_array_without_class(instance.labels_timesteps,instance.labels_frame_rate, delete_value)
                 instance.labels = instance.generate_array_without_class(instance.labels,instance.labels_frame_rate, delete_value)
+                # check equallity of length of data and labels (It can arrise due to inaccuracy of converting )
+                instance.check_equallity_data_length_and_labels()
 
         # check if some file have 0 labels (this could be, if all labels were -1. You can face it in FG_2020 competition)
         tmp_list=[]
@@ -173,6 +175,8 @@ class Database():
         # scaling
         if need_scaling==True:
             scaler=self.normalize_data_within_database(scaler=scaler, return_scaler=return_scaler)
+
+
         # cutting
         self.cut_all_instances(window_size, window_step)
         # return scaler if need

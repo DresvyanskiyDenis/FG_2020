@@ -36,25 +36,11 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
                                                                return_scaler=True)
     train_data, train_labels = train_database.get_all_concatenated_cutted_data_and_labels()
 
-    # validation
-    path_to_data_validation = path_to_data
-    path_to_labels_validation = path_to_labels_validation
-    validation_database = Database(path_to_data=path_to_data_validation,
-                                   path_to_labels=path_to_labels_validation,
-                                   data_filetype='wav',
-                                   data_postfix='_vocals')
-    validation_database.load_all_data_and_labels(loading_data_function=load_data_wav, loading_labels_function=load_labels)
-    validation_database.prepare_data_for_training(window_size=window_size, window_step=window_step,
-                                                               delete_value=None,
-                                                               need_scaling=True,
-                                                               scaler=train_data_scaler,
-                                                               return_scaler=False)
-    validation_data, validation_labels = validation_database.get_all_concatenated_cutted_data_and_labels()
+
 
     # expand labels to probabilities
     num_classes = 7
     train_labels = tf.keras.utils.to_categorical(train_labels, num_classes=num_classes)
-    validation_labels = tf.keras.utils.to_categorical(validation_labels, num_classes=num_classes)
 
     # model
     input_shape = train_data.shape[1:]
@@ -77,6 +63,27 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
     for i in range(class_weights.shape[0]):
         mask = (sample_weight == i)
         sample_weight[mask] = class_weights[i]
+
+    # clear RAM
+    del train_database
+    gc.collect()
+
+    # validation
+    path_to_data_validation = path_to_data
+    path_to_labels_validation = path_to_labels_validation
+    validation_database = Database(path_to_data=path_to_data_validation,
+                                   path_to_labels=path_to_labels_validation,
+                                   data_filetype='wav',
+                                   data_postfix='_vocals')
+    validation_database.load_all_data_and_labels(loading_data_function=load_data_wav,
+                                                 loading_labels_function=load_labels)
+    validation_database.prepare_data_for_training(window_size=window_size, window_step=window_step,
+                                                  delete_value=None,
+                                                  need_scaling=True,
+                                                  scaler=train_data_scaler,
+                                                  return_scaler=False)
+    validation_data, validation_labels = validation_database.get_all_concatenated_cutted_data_and_labels()
+    #validation_labels = tf.keras.utils.to_categorical(validation_labels, num_classes=num_classes)
 
     best_model = None
     best_result = 0

@@ -164,3 +164,12 @@ class Database_instance():
             indexes=indexes[:arr.shape[0]]
         return arr[indexes]
 
+    def check_equallity_data_length_and_labels(self):
+        labels_length_in_data_sample_rate=int(self.labels.shape[0]/self.labels_frame_rate*self.data_frame_rate)
+        if self.data.shape[0]>=labels_length_in_data_sample_rate:
+            self.data=self.data[:labels_length_in_data_sample_rate]
+        else:
+            new_data=np.zeros(shape=(labels_length_in_data_sample_rate,)+self.data.shape[1:])
+            new_data[:self.data.shape[0]]=self.data
+            self.data=new_data
+
