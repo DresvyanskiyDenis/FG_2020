@@ -116,8 +116,6 @@ class Database_instance():
         :return: 2D ndarray, shape=(num_windows, data_window_size), cutted data
                  2D ndarray, shape=(num_windows, labels_window_size), cutted labels
         """
-        if self.data_frame_rate==None:
-            self.data_frame_rate = self.labels_frame_rate
         # calculate params for cutting (size of window and step in index)
         self.data_window_size=int(window_size*self.data_frame_rate)
         self.data_window_step=int(window_step*self.data_frame_rate)

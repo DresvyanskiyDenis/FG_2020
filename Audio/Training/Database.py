@@ -145,6 +145,14 @@ class Database():
         return train_part_data, train_part_labels, val_part_data, val_part_labels
 
     def prepare_data_for_training(self, window_size, window_step, delete_value=-1, need_scaling=False, scaler=None, return_scaler=False):
+        # check if every instance has data_frame_rate or not
+        # if not, it means that frame rate of data equels to labels frame rate
+
+        if self.data_frame_rate==None:
+            self.data_frame_rate = self.labels_frame_rate
+            for instance in self.data_instances:
+                instance.data_frame_rate=self.data_frame_rate
+
         # aligning labels
         for instance in self.data_instances:
             instance.align_number_of_labels_and_data()
