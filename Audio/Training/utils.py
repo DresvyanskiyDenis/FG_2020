@@ -98,6 +98,8 @@ def plot_confusion_matrix(y_true, y_pred, classes,
     fig.tight_layout()
     if path_to_save!='':
         plt.savefig(path_to_save + 'confusion_matrix.png')
+    else:
+        plt.show()
     return ax
 
 def load_labels(path_to_labels):
