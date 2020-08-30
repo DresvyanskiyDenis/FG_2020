@@ -106,6 +106,7 @@ class Database():
         # aligning labels
         for instance in self.data_instances:
             instance.align_number_of_labels_and_data()
+            instance.generate_timesteps_for_labels()
         # delete all -1 labels
         if delete_value!=None:
             for instance in self.data_instances:
@@ -113,6 +114,7 @@ class Database():
                 instance.labels = instance.generate_array_without_class(instance.labels,instance.labels_frame_rate, delete_value)
                 # check equallity of length of data and labels (It can arrise due to inaccuracy of converting )
                 instance.check_equallity_data_length_and_labels()
+                instance.generate_timesteps_for_labels()
 
         # check if some file have 0 labels (this could be, if all labels were -1. You can face it in FG_2020 competition)
         tmp_list=[]
