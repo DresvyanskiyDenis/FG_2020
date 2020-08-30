@@ -114,9 +114,9 @@ def load_data_wav(path_to_datafile):
     # if we have 2 channels in audio (stereo)
     if len(data.shape)>1:
         data=data[:,0].reshape((-1,1))
-    return data, sample_rate
+    return data.astype('float32'), sample_rate
 
 def load_data_csv(path_to_datafile):
     data=pd.read_csv(path_to_datafile ,header=None)
-    return data.values, None
+    return data.values.astype('float32'), None
 
