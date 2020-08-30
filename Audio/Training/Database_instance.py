@@ -15,12 +15,11 @@ class Database_instance():
         self.labels_window_step = None
         self.data = None
         self.data_frame_rate=None
-        self.cutted_data = None
+        self.cutted_data_idx = None
         self.labels = None
         self.labels_frame_rate=None
-        self.cutted_labels = None
+        self.cutted_labels_idx = None
         self.labels_timesteps= None
-        self.cutted_labels_timesteps=None
         self.cutted_predictions=None
         self.predictions=None
         self.loading_data_function=None
@@ -83,28 +82,28 @@ class Database_instance():
         :return: 2D ndarray, shape=(num_windows, window_size)
         """
         num_windows = how_many_windows_do_i_need(sequence.shape[0], window_size, window_step)
-        if len(sequence.shape)>1:
-            cutted_data=np.zeros(shape=(num_windows, window_size)+sequence.shape[1:])
-        else:
-            cutted_data = np.zeros(shape=(num_windows, window_size))
+        cutted_data_indexes=np.zeros(shape=(num_windows, 2))
 
         # if sequence has length less than whole window
         if sequence.shape[0]<window_size:
-            cutted_data[0, :sequence.shape[0]]=sequence
-            return cutted_data
+            cutted_data_indexes[0, 0]=0
+            cutted_data_indexes[0, 1] = window_size
+            return cutted_data_indexes
 
 
         start_idx=0
         # start of cutting
         for idx_window in range(num_windows-1):
             end_idx=start_idx+window_size
-            cutted_data[idx_window]=sequence[start_idx:end_idx]
+            cutted_data_indexes[idx_window,0]=start_idx
+            cutted_data_indexes[idx_window, 1] = end_idx
             start_idx+=window_step
         # last window
         end_idx=sequence.shape[0]
         start_idx=end_idx-window_size
-        cutted_data[num_windows-1]=sequence[start_idx:end_idx]
-        return cutted_data
+        cutted_data_indexes[-1, 0] = start_idx
+        cutted_data_indexes[-1, 1] = end_idx
+        return cutted_data_indexes
 
     def cut_data_and_labels_on_windows(self, window_size, window_step):
         """This function exploits function cut_sequence_on_windows() for cutting data and labels
@@ -122,24 +121,11 @@ class Database_instance():
         self.labels_window_size=int(window_size*self.labels_frame_rate)
         self.labels_window_step=int(window_step*self.labels_frame_rate)
 
-        self.cutted_data=self.cut_sequence_on_windows(self.data, self.data_window_size, self.data_window_step)
-        self.cutted_labels=self.cut_sequence_on_windows(self.labels, self.labels_window_size, self.labels_window_step)
-        self.cutted_labels_timesteps=self.cut_sequence_on_windows(self.labels_timesteps, self.labels_window_size, self.labels_window_step)
-        self.cutted_data = self.cutted_data.astype('float32')
-        self.cutted_labels = self.cutted_labels.astype('int32')
-        self.cutted_labels_timesteps= self.cutted_labels_timesteps.astype('float32')
-        return self.cutted_data, self.cutted_labels, self.cutted_labels_timesteps
-
-
-    def generate_timesteps_for_labels(self):
-        """This function generates timesteps for labels with corresponding labels_frame_rate
-           After executing it will be saved in field self.labels_timesteps
-        :return: None
-        """
-        label_timestep_in_sec=1./self.labels_frame_rate
-        timesteps=np.array([i for i in range(self.labels.shape[0])], dtype='float32')
-        timesteps=timesteps*label_timestep_in_sec
-        self.labels_timesteps=timesteps
+        self.cutted_data_indexes=self.cut_sequence_on_windows(self.data, self.data_window_size, self.data_window_step)
+        self.cutted_labels_indexes=self.cut_sequence_on_windows(self.labels, self.labels_window_size, self.labels_window_step)
+        self.cutted_data_indexes = self.cutted_data_indexes.astype('int32')
+        self.cutted_labels_indexes = self.cutted_labels_indexes.astype('int32')
+        return self.cutted_data_indexes, self.cutted_labels_indexes
 
     def align_number_of_labels_and_data(self):
         if self.data_frame_rate==self.labels_frame_rate:
@@ -154,7 +140,6 @@ class Database_instance():
             value_to_fill = self.labels[-1]
             aligned_labels[self.labels.shape[0]:] = value_to_fill
         self.labels=aligned_labels
-        self.generate_timesteps_for_labels()
 
     def generate_array_without_class(self, arr,arr_frame_rate, class_num):
         # TODO: upgrade this function in more efficient and explicit way
@@ -173,3 +158,12 @@ class Database_instance():
             new_data[:self.data.shape[0]]=self.data
             self.data=new_data
 
+    def generate_timesteps_for_labels(self):
+        """This function generates timesteps for labels with corresponding labels_frame_rate
+           After executing it will be saved in field self.labels_timesteps
+        :return: None
+        """
+        label_timestep_in_sec=1./self.labels_frame_rate
+        timesteps=np.array([i for i in range(self.labels.shape[0])], dtype='float32')
+        timesteps=timesteps*label_timestep_in_sec
+        self.labels_timesteps=timesteps.astype('float32')

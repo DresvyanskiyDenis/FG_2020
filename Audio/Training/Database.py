@@ -61,24 +61,6 @@ class Database():
         if return_scaler==True:
             return scaler
 
-    def get_all_concatenated_cutted_data_and_labels(self):
-        """This function concatenates cutted data and labels of all elements of list self.data_instances
-           Every element of list is Database_instance() class, which contains field cutted_data and cutted_labels
-
-        :return: 2D ndarray, shape=(num_instances_in_list*num_windows_per_instance, data_window_size),
-                    concatenated cutted_data of every element of list self.data_instances
-                 2D ndarray, shape=(num_instances_in_list*num_windows_per_instance, labels_window_size),
-                    concatenated cutted_labels of every element of list self.data_instances
-        """
-        tmp_data=[]
-        tmp_labels=[]
-        for i in range(len(self.data_instances)):
-            tmp_data.append(self.data_instances[i].cutted_data)
-            tmp_labels.append(self.data_instances[i].cutted_labels)
-        result_data=np.vstack(tmp_data)
-        result_labels = np.vstack(tmp_labels)
-        return result_data, result_labels
-
     def get_all_concatenated_data_and_labels(self):
         """This function concatenates data and labels of all elements of list self.data_instances
            Every element of list is Database_instance() class, which contains field data and labels
@@ -97,13 +79,6 @@ class Database():
         result_labels = np.vstack(tmp_labels).reshape((-1))
         return result_data, result_labels
 
-    def get_all_concatenated_cutted_labels_timesteps(self):
-        tmp_timesteps=[]
-        for i in range(len(self.data_instances)):
-            tmp_timesteps.append(self.data_instances[i].cutted_labels_timesteps)
-        result_timesteps=np.vstack(tmp_timesteps)
-        return result_timesteps
-
     def reduce_labels_frame_rate(self, needed_frame_rate):
         """This function reduce labels frame rate to needed frame rate by taking every (second, thirs and so on) elements from
            based on calculated ratio.
@@ -118,31 +93,6 @@ class Database():
             self.data_instances[i].labels=self.data_instances[i].labels[::ratio]
             self.data_instances[i].labels_frame_rate=needed_frame_rate
 
-
-    def shuffle_and_separate_cutted_data_on_train_and_val_sets(self, percent_of_validation):
-        """This function shuffle and then separate cutted data and labels by given percent_of_validation
-           It exploits class function get_all_concatenated_cutted_data_and_labels() to get cutted data and labels from
-           each database_instance and then concatenate it
-           Then resulted arrays of get_all_concatenated_cutted_data_and_labels() function will be
-           shuffled and then separated on train and validation parts
-
-        :param percent_of_validation: float, percent of validation part in all data
-        :return: 2D ndarray, shape=(num_instances_in_list*num_windows_per_instance*(100-percent_of_validation)/100, data_window_size),
-                    train data - concatenated cutted_data of every element of list self.data_instances
-                 2D ndarray, shape=(num_instances_in_list*num_windows_per_instance*(100-percent_of_validation)/100, labels_window_size),
-                    train labels - concatenated cutted_labels of every element of list self.data_instances
-                 2D ndarray, shape=(num_instances_in_list*num_windows_per_instance*percent_of_validation/100, data_window_size),
-                    validation data - concatenated cutted_data of every element of list self.data_instances
-                 2D ndarray, shape=(num_instances_in_list*num_windows_per_instance*percent_of_validation/100, labels_window_size),
-                    validation labels - concatenated cutted_data of every element of list self.data_instances
-        """
-        concatenated_data, concatenated_labels=self.get_all_concatenated_cutted_data_and_labels()
-        permutation=np.random.permutation(concatenated_data.shape[0])
-        concatenated_data, concatenated_labels= concatenated_data[permutation], concatenated_labels[permutation]
-        sep_idx=int(concatenated_data.shape[0]*(100-percent_of_validation)/100.)
-        train_part_data, train_part_labels= concatenated_data[:sep_idx], concatenated_labels[:sep_idx]
-        val_part_data, val_part_labels= concatenated_data[sep_idx:], concatenated_labels[sep_idx:]
-        return train_part_data, train_part_labels, val_part_data, val_part_labels
 
     def prepare_data_for_training(self, window_size, window_step, delete_value=-1, need_scaling=False, scaler=None, return_scaler=False):
         # check if every instance has data_frame_rate or not
@@ -160,7 +110,6 @@ class Database():
         if delete_value!=None:
             for instance in self.data_instances:
                 instance.data=instance.generate_array_without_class(instance.data,instance.data_frame_rate, delete_value)
-                instance.labels_timesteps = instance.generate_array_without_class(instance.labels_timesteps,instance.labels_frame_rate, delete_value)
                 instance.labels = instance.generate_array_without_class(instance.labels,instance.labels_frame_rate, delete_value)
                 # check equallity of length of data and labels (It can arrise due to inaccuracy of converting )
                 instance.check_equallity_data_length_and_labels()

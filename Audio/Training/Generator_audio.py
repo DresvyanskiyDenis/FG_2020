@@ -1,6 +1,9 @@
 import pandas as pd
 import numpy as np
 
+from Audio.Training.Metric_calculator import Metric_calculator
+
+
 def extract_cutted_values_from_given_indexes(dataframe_indexes, dict_instances, result_array_shape, type_data='data'):
     result_array=np.zeros(result_array_shape)
     for i in range(dataframe_indexes.shape[0]):
@@ -14,7 +17,7 @@ def extract_cutted_values_from_given_indexes(dataframe_indexes, dict_instances, 
 
 def extract_cutted_data_labels_from_given_indexes(dataframe_indexes, dict_instances, result_data_shape, result_lbs_shape):
     """This function extracts data and labels in window format via corresponding indexes located in dataframe_indexes
-       Cutted format is needed for train recurrent models. The technique of converting:
+       Cut format is needed for train recurrent models. The technique of converting:
        for example, if we have sequence [1 2 3 4 5 6 7 8], window_size=4, window_step=3 then
        dataframe_indexes can be as [0, 4] - it is indexes
                                    [3, 7]
@@ -43,7 +46,7 @@ def extract_cutted_data_labels_from_given_indexes(dataframe_indexes, dict_instan
     return result_data, result_labels
 
 
-def batch_generator_cut_data(instances, batch_size=32, need_shuffle=False):
+def batch_generator_cut_data(instances, batch_size=32, need_shuffle=False, need_sample_weight=False, class_weights=None):
     """This generator extracts indexes of windows from all instances, which are Database_instance() objects
        shuffle it, if it is needed, and piece by piece generate cut data and labels from extracted indexes
        and yield it to save RAM
@@ -93,13 +96,44 @@ def batch_generator_cut_data(instances, batch_size=32, need_shuffle=False):
         else:
             end_idx_windows_indexes=start_idx_windows_indexes+batch_size
         # shapes of needed arrays of cutted data and labels
-        future_cutted_data_shape=(end_idx_windows_indexes-start_idx_windows_indexes, data_window_size,1)
-        future_cutted_lbs_shape=(end_idx_windows_indexes-start_idx_windows_indexes, labels_window_size)
+        future_cut_data_shape=(end_idx_windows_indexes-start_idx_windows_indexes, data_window_size,1)
+        future_cut_lbs_shape=(end_idx_windows_indexes-start_idx_windows_indexes, labels_window_size)
 
         # start of extracting cutted data and labels from generated indexes
         current_indexes_of_windows=windows_indexes.iloc[i:(i+batch_size),:]
         cutted_data, cutted_labels= extract_cutted_data_labels_from_given_indexes(dataframe_indexes=current_indexes_of_windows,
                                                                                   dict_instances=filename_instance_dict,
-                                                                                  result_data_shape=future_cutted_data_shape,
-                                                                                  result_lbs_shape=future_cutted_lbs_shape)
-        yield cutted_data, cutted_labels
+                                                                                  result_data_shape=future_cut_data_shape,
+                                                                                  result_lbs_shape=future_cut_lbs_shape)
+        # if we need sample weights for balancing data
+        if need_sample_weight==True:
+            sample_weight = cutted_labels.copy().astype('float32')
+            for i in range(class_weights.shape[0]):
+                mask = (sample_weight == i)
+                sample_weight[mask] = class_weights[i]
+            yield cutted_data, cutted_labels, sample_weight
+        else:
+            yield cutted_data, cutted_labels
+
+def predict_data_with_model(model, instances):
+    data_window_size = instances[0].data_window_size
+    labels_window_size=instances[0].labels_window_size
+    # for access to instances via filename
+    filename_instance_dict = {}
+    for instance in instances:
+        filename_instance_dict[instance.filename] = instance
+
+    for instance in instances:
+        data_window_indexes=instance.cutted_data_indexes
+        labels_window_indexes=instance.cutted_labels_indexes
+        cut_data=np.zeros((data_window_indexes.shape[0], data_window_size,1))
+        cut_timesteps=np.zeros((data_window_indexes.shape[0],labels_window_size))
+        for i in range(data_window_indexes.shape[0]):
+            cut_data[i]=instance.data[data_window_indexes[i,0]:data_window_indexes[i,1]]
+            cut_timesteps[i]=instance.labels_timesteps[labels_window_indexes[i,0]:labels_window_indexes[i,1]]
+        predictions=model.predict(cut_data)
+        cut_timesteps=cut_timesteps.reshape((-1,1))
+        metric_calculator = Metric_calculator(predictions, cut_timesteps,
+                                              ground_truth=instance.labels)
+        metric_calculator.average_cutted_predictions_by_timestep(mode='categorical_probabilities')
+        instance.predictions = metric_calculator.predictions
