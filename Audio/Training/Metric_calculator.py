@@ -66,7 +66,7 @@ class Metric_calculator():
         mask=ground_truth_all!=delete_value
         ground_truth_all=ground_truth_all[mask]
         predictions_all=predictions_all[mask]
-        return f1_score(ground_truth_all, predictions_all, average='macro')
+        return 0.67*f1_score(ground_truth_all, predictions_all, average='macro')+0.33*accuracy_score(ground_truth_all, predictions_all)
 
 
     def calculate_accuracy(self):
