@@ -41,8 +41,16 @@ def extract_cutted_data_labels_from_given_indexes(dataframe_indexes, dict_instan
     for i in range(dataframe_indexes.shape[0]):
         start_idx_data, end_idx_data,start_idx_lbs, end_idx_lbs = dataframe_indexes.iloc[i, :].values
         filename = dataframe_indexes.index[i]
+        # Padding if the shape of data less then window size
+        if start_idx_data==0 and end_idx_data>dict_instances[filename].data.shape[0]:
+            result_data[i]=np.zeros(shape=(end_idx_data-start_idx_data,)+dict_instances[filename].data.shape[1:])
+            result_data[i,:dict_instances[filename].data.shape[0]]=dict_instances[filename].data
+            result_labels[i]=np.zeros(shape=(end_idx_lbs-start_idx_lbs,)+dict_instances[filename].labels.shape[1:])
+            result_labels[i,:dict_instances[filename].labels.shape[0]]=dict_instances[filename].labels
+            return result_data, result_labels
         result_data[i] = dict_instances[filename].data[start_idx_data:end_idx_data]
         result_labels[i] = dict_instances[filename].labels[start_idx_lbs:end_idx_lbs]
+
     return result_data, result_labels
 
 
@@ -126,7 +134,7 @@ def predict_data_with_model(model, instances):
     for instance in instances:
         data_window_indexes=instance.cutted_data_indexes
         labels_window_indexes=instance.cutted_labels_indexes
-        cut_data=np.zeros((data_window_indexes.shape[0], data_window_size,1))
+        cut_data=np.zeros((data_window_indexes.shape[0], data_window_size,instance.data.shape[1]))
         cut_timesteps=np.zeros((data_window_indexes.shape[0],labels_window_size))
         for i in range(data_window_indexes.shape[0]):
             cut_data[i]=instance.data[data_window_indexes[i,0]:data_window_indexes[i,1]]
