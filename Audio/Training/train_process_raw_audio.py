@@ -21,10 +21,10 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
                               data_filetype='wav',
                               data_postfix='_vocals')
     train_database.load_all_data_and_labels(loading_data_function=load_data_wav, loading_labels_function=load_labels)
-    train_data_scaler=train_database.prepare_data_for_training(window_size=window_size, window_step=window_step,
-                                                               need_scaling=True,
+    train_database.prepare_data_for_training(window_size=window_size, window_step=window_step,
+                                                               need_scaling=False,
                                                                scaler=None,
-                                                               return_scaler=True)
+                                                               return_scaler=False)
 
     # validation data
     validation_database = Database(path_to_data=path_to_data_train,
@@ -34,8 +34,8 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
     validation_database.load_all_data_and_labels(loading_data_function=load_data_wav, loading_labels_function=load_labels)
     validation_database.prepare_data_for_training(window_size=window_size, window_step=window_step,
                                                                  delete_value=None,
-                                                                 need_scaling=True,
-                                                                 scaler=train_data_scaler,
+                                                                 need_scaling=False,
+                                                                 scaler=None,
                                                                  return_scaler=False)
 
 
@@ -44,8 +44,8 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
     # model params
     model_input=(train_database.data_instances[0].data_window_size,)+train_database.data_instances[0].data.shape[1:]
     num_classes=7
-    batch_size=16
-    epochs=50
+    batch_size=20
+    epochs=100
     optimizer=tf.keras.optimizers.Nadam()
     loss=tf.keras.losses.categorical_crossentropy
     # create model
@@ -71,8 +71,9 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
         for generator_step in train_generator:
             train_data, train_labels, sample_weights=generator_step
             train_labels=tf.keras.utils.to_categorical(train_labels, num_classes=num_classes)
+            train_data, train_labels, sample_weights=train_data.astype('float32'), train_labels.astype('float32'), sample_weights.astype('float32')
             train_result=model.train_on_batch(train_data, train_labels, sample_weight=sample_weights)
-            print('Epoch %i, num batch:%i, loss:%f'%(epoch, num_batch,train_result))
+            #print('Epoch %i, num batch:%i, loss:%f'%(epoch, num_batch,train_result))
             num_batch+=1
             loss_sum+=train_result
         # calculate metric on validation
@@ -83,6 +84,10 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
         if validation_result>=best_result:
             best_result=validation_result
             model.save_weights(path_to_output+'best_model_weights.h5')
+    results=pd.DataFrame(columns=['data directory', 'window size', 'validation_result'])
+    results=results.append({'data directory':path_to_data, 'window size':window_size, 'validation_result':best_result}, ignore_index=True)
+    results.to_csv(path_to_output+'test_results.csv', index=False)
+    return best_result
 
 
 
