@@ -7,11 +7,12 @@ from Audio.Training.Metric_calculator import Metric_calculator
 from Audio.Training.models import CNN_1D_model
 from Audio.Training.Database import Database
 from Audio.Training.Generator_audio import batch_generator_cut_data, predict_data_with_model
-from Audio.Training.utils import load_labels, load_data_wav, generate_weights
+from Audio.Training.utils import load_labels, load_data_wav, generate_weights, find_the_greatest_class_in_array
 import tensorflow as tf
 
 
-def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_validation, path_to_output, window_size, window_step, class_weights_mode='my_realisation'):
+def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_validation, path_to_output, window_size, window_step,
+                        class_weights_mode='my_realisation', prediction_mode='sequence_to_sequence'):
     # data params
     path_to_data_train = path_to_data
     path_to_labels_train = path_to_labels_train
@@ -45,12 +46,16 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
     model_input=(train_database.data_instances[0].data_window_size,)+train_database.data_instances[0].data.shape[1:]
     num_classes=7
     batch_size=20
-    epochs=100
+    epochs=2
     optimizer=tf.keras.optimizers.Nadam()
     loss=tf.keras.losses.categorical_crossentropy
     # create model
     model= CNN_1D_model(model_input, num_classes)
-    model.compile(optimizer=optimizer, loss=loss, sample_weight_mode="temporal")
+    if prediction_mode == 'sequence_to_sequence':
+        model.compile(optimizer=optimizer, loss=loss, sample_weight_mode="temporal")
+    else:
+        model.compile(optimizer=optimizer, loss=loss)
+
 
     # class weighting through sample weighting, while keras do not allow use class_weights with reccurent layers and 3D+ data
     if class_weights_mode == 'my_realisation':
@@ -70,23 +75,35 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
         loss_sum=0
         for generator_step in train_generator:
             train_data, train_labels, sample_weights=generator_step
-            train_labels=tf.keras.utils.to_categorical(train_labels, num_classes=num_classes)
-            train_data, train_labels, sample_weights=train_data.astype('float32'), train_labels.astype('float32'), sample_weights.astype('float32')
-            train_result=model.train_on_batch(train_data, train_labels, sample_weight=sample_weights)
+            # if we have want to predict only one labels per whole window, we need to reduce all labels in window to one,
+            # which is the majority of window with labels
+            if prediction_mode=='sequence_to_one':
+                new_labels=np.zeros(shape=(train_labels.shape[0], 1))
+                for i in range(train_labels.shape[0]):
+                    greatest_class=find_the_greatest_class_in_array(train_labels[i])
+                    new_labels[i,0]=greatest_class
+                train_labels=new_labels
+
+            train_labels = tf.keras.utils.to_categorical(train_labels, num_classes=num_classes)
+            train_data, train_labels, sample_weights = train_data.astype('float32'), train_labels.astype('float32'), sample_weights.astype('float32')
+            if prediction_mode=='sequence_to_one':
+                train_result = model.train_on_batch(train_data, train_labels, class_weight=class_weights)
+            elif prediction_mode=='sequene_to_sequence':
+                train_result=model.train_on_batch(train_data, train_labels, sample_weight=sample_weights)
             #print('Epoch %i, num batch:%i, loss:%f'%(epoch, num_batch,train_result))
             num_batch+=1
             loss_sum+=train_result
         # calculate metric on validation
-        predict_data_with_model(model, validation_database.data_instances)
+        predict_data_with_model(model, validation_database.data_instances, prediction_mode=prediction_mode)
         validation_result = Metric_calculator(None, None,None).\
             calculate_FG_2020_categorical_score_across_all_instances(validation_database.data_instances)
         print('Epoch %i is ended. Average loss:%f, validation FG-2020 metric:%f' % (epoch, loss_sum / num_batch, validation_result))
         if validation_result>=best_result:
             best_result=validation_result
             model.save_weights(path_to_output+'best_model_weights.h5')
-    results=pd.DataFrame(columns=['data directory', 'window size', 'validation_result'])
-    results=results.append({'data directory':path_to_data, 'window size':window_size, 'validation_result':best_result}, ignore_index=True)
-    results.to_csv(path_to_output+'test_results.csv', index=False)
+            results=pd.DataFrame(columns=['data directory', 'window size', 'validation_result'])
+            results=results.append({'data directory':path_to_data, 'window size':window_size, 'validation_result':best_result}, ignore_index=True)
+            results.to_csv(path_to_output+'test_results.csv', index=False)
     return best_result
 
 
@@ -112,7 +129,7 @@ if __name__ == "__main__":
                                        path_to_output=output_directory,
                                        window_size=window_size,
                                        window_step=window_size*2./5.,
-                                       class_weights_mode='my_realisation')
+                                       class_weights_mode='my_realisation', prediction_mode='sequence_to_one')
         results=results.append({'data directory':path_to_data, 'window size':window_size, 'validation_result':val_result}, ignore_index=True)
         results.to_csv('test_results.csv', index=False)
 

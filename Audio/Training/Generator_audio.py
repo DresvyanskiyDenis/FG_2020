@@ -123,7 +123,7 @@ def batch_generator_cut_data(instances, batch_size=32, need_shuffle=False, need_
         else:
             yield cutted_data, cutted_labels
 
-def predict_data_with_model(model, instances):
+def predict_data_with_model(model, instances, prediction_mode='sequence_to_sequence'):
     data_window_size = instances[0].data_window_size
     labels_window_size=instances[0].labels_window_size
     # for access to instances via filename
@@ -140,6 +140,13 @@ def predict_data_with_model(model, instances):
             cut_data[i]=instance.data[data_window_indexes[i,0]:data_window_indexes[i,1]]
             cut_timesteps[i]=instance.labels_timesteps[labels_window_indexes[i,0]:labels_window_indexes[i,1]]
         predictions=model.predict(cut_data)
+        # if we have only one predicted labels per whole window, we need to extend it
+        if prediction_mode=='sequence_to_one':
+            extended_predictions=np.zeros(cut_timesteps.shape+(predictions.shape[-1],))
+            for i in range(predictions.shape[0]):
+                extended_predictions[i,:]=predictions[i]
+            predictions=extended_predictions
+
         cut_timesteps=cut_timesteps.reshape((-1,1))
         metric_calculator = Metric_calculator(predictions, cut_timesteps,
                                               ground_truth=instance.labels)

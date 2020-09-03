@@ -120,3 +120,8 @@ def load_data_csv(path_to_datafile):
     data=pd.read_csv(path_to_datafile ,header=None)
     return data.values.astype('float32'), None
 
+def find_the_greatest_class_in_array(array):
+    counter_classes=np.unique(array, return_counts=True)
+    greatest_class=counter_classes[0][np.argmax(counter_classes[1])]
+    return greatest_class
+
