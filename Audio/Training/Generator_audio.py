@@ -139,7 +139,7 @@ def predict_data_with_model(model, instances, prediction_mode='sequence_to_seque
         for i in range(data_window_indexes.shape[0]):
             cut_data[i]=instance.data[data_window_indexes[i,0]:data_window_indexes[i,1]]
             cut_timesteps[i]=instance.labels_timesteps[labels_window_indexes[i,0]:labels_window_indexes[i,1]]
-        predictions=model.predict(cut_data)
+        predictions=model.predict(cut_data, batch_size=1)
         # if we have only one predicted labels per whole window, we need to extend it
         if prediction_mode=='sequence_to_one':
             extended_predictions=np.zeros(cut_timesteps.shape+(predictions.shape[-1],))

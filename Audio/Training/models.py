@@ -17,8 +17,8 @@ def CNN_1D_model(input_shape, num_classes):
     model.add(tf.keras.layers.Dropout(0.3))
     model.add(tf.keras.layers.AvgPool1D(pool_size=4))
     model.add(tf.keras.layers.LSTM(256, return_sequences=True))
-    model.add(tf.keras.layers.LSTM(256, return_sequences=True))
-    model.add(tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(num_classes, activation='softmax')))
+    model.add(tf.keras.layers.LSTM(256, return_sequences=False))
+    model.add(tf.keras.layers.Dense(num_classes, activation='softmax'))
     print(model.summary())
     return model
 
