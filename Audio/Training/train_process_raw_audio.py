@@ -12,7 +12,8 @@ import tensorflow as tf
 
 
 def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_validation, path_to_output, window_size, window_step,
-                        class_weights_mode='my_realisation', prediction_mode='sequence_to_sequence'):
+                        class_weights_mode='my_realisation', prediction_mode='sequence_to_sequence', save_model_every_batch=False,
+                        load_weights_before_training=False, path_to_weights=None):
     # data params
     path_to_data_train = path_to_data
     path_to_labels_train = path_to_labels_train
@@ -55,6 +56,9 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
         model.compile(optimizer=optimizer, loss=loss, sample_weight_mode="temporal")
     else:
         model.compile(optimizer=optimizer, loss=loss)
+
+    if load_weights_before_training:
+        model.load_weights(path_to_weights)
 
 
     # class weighting through sample weighting, while keras do not allow use class_weights with reccurent layers and 3D+ data
@@ -104,6 +108,8 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
             results=pd.DataFrame(columns=['data directory', 'window size', 'validation_result'])
             results=results.append({'data directory':path_to_data, 'window size':window_size, 'validation_result':best_result}, ignore_index=True)
             results.to_csv(path_to_output+'test_results.csv', index=False)
+        if save_model_every_batch:
+            model.save_weights(path_to_output + 'last_epoch_model_weights.h5')
     return best_result
 
 
@@ -129,7 +135,8 @@ if __name__ == "__main__":
                                        path_to_output=output_directory,
                                        window_size=window_size,
                                        window_step=window_size*2./5.,
-                                       class_weights_mode='my_realisation', prediction_mode='sequence_to_one')
+                                       class_weights_mode='my_realisation', prediction_mode='sequence_to_one',
+                                       save_model_every_batch=True)
         results=results.append({'data directory':path_to_data, 'window size':window_size, 'validation_result':val_result}, ignore_index=True)
         results.to_csv('test_results.csv', index=False)
 
