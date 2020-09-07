@@ -13,7 +13,7 @@ import tensorflow as tf
 
 def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_validation, path_to_output, window_size, window_step,
                         class_weights_mode='my_realisation', prediction_mode='sequence_to_sequence', save_model_every_batch=False,
-                        load_weights_before_training=False, path_to_weights=None):
+                        load_weights_before_training=False, path_to_weights=None, validation_value_best_model=None):
     # data params
     path_to_data_train = path_to_data
     path_to_labels_train = path_to_labels_train
@@ -52,13 +52,15 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
     loss=tf.keras.losses.categorical_crossentropy
     # create model
     model= CNN_1D_model(model_input, num_classes)
+
+    if load_weights_before_training:
+        model.load_weights(path_to_weights)
+
     if prediction_mode == 'sequence_to_sequence':
         model.compile(optimizer=optimizer, loss=loss, sample_weight_mode="temporal")
     else:
         model.compile(optimizer=optimizer, loss=loss)
 
-    if load_weights_before_training:
-        model.load_weights(path_to_weights)
 
 
     # class weighting through sample weighting, while keras do not allow use class_weights with reccurent layers and 3D+ data
@@ -71,7 +73,12 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
                                                               train_database.get_all_concatenated_data_and_labels()[1]),
                                                           train_database.get_all_concatenated_data_and_labels()[1])
 
+    # calculate metric on validation
+
     best_result=0
+    if validation_value_best_model!=None:
+        best_result=validation_value_best_model
+
     for epoch in range(epochs):
         train_generator = batch_generator_cut_data(train_database.data_instances, need_shuffle=True,
                                                    batch_size=batch_size, need_sample_weight=True, class_weights=class_weights)
@@ -120,23 +127,35 @@ if __name__ == "__main__":
     path_to_labels_train='D:\\Databases\\AffWild2\\Annotations\\EXPR_Set\\train\\dropped14_interpolated10\\'
     path_to_labels_validation = 'D:\\Databases\\AffWild2\\Annotations\\EXPR_Set\\validation\\Aligned_labels_reduced\\sample_rate_5\\'
     path_to_output='results\\'
+
     if not os.path.exists(path_to_output):
         os.mkdir(path_to_output)
-    data_directories=os.listdir(path_to_data)
+    #data_directories=os.listdir(path_to_data)
     window_sizes=[4]
     results=pd.DataFrame(columns=['data directory', 'window size', 'validation_result'])
+    class_weights_mode='scikit'
+    prediction_mode='sequence_to_one'
+    save_model_every_batch=True
+    load_weights_before_training=True
+    need_load_result_best_model=True
     for window_size in window_sizes:
         output_directory=path_to_output+'1D_CNN_window_size_'+str(window_size)+'\\'
         if not os.path.exists(output_directory):
             os.mkdir(output_directory)
+        if need_load_result_best_model:
+            res_best_model=pd.read_csv(output_directory+'test_results.csv')
+            best_value=res_best_model['validation_result'].values[0]
         val_result=train_model_on_data(path_to_data=path_to_data,
                                        path_to_labels_train=path_to_labels_train,
                                        path_to_labels_validation=path_to_labels_validation,
                                        path_to_output=output_directory,
                                        window_size=window_size,
                                        window_step=window_size*2./5.,
-                                       class_weights_mode='my_realisation', prediction_mode='sequence_to_one',
-                                       save_model_every_batch=True)
+                                       class_weights_mode=class_weights_mode, prediction_mode=prediction_mode,
+                                       save_model_every_batch=save_model_every_batch,
+                                       load_weights_before_training=load_weights_before_training,
+                                       path_to_weights=output_directory+'last_epoch_model_weights.h5',
+                                       validation_value_best_model=best_value)
         results=results.append({'data directory':path_to_data, 'window size':window_size, 'validation_result':val_result}, ignore_index=True)
         results.to_csv('test_results.csv', index=False)
 
