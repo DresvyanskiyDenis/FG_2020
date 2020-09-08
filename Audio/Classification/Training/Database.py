@@ -3,7 +3,7 @@ import os
 
 from sklearn.preprocessing import StandardScaler
 
-from Audio.Training.Database_instance import Database_instance
+from Audio.Classification.Training.Database_instance import Database_instance
 
 
 class Database():

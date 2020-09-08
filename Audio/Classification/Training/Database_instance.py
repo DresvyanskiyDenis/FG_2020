@@ -1,7 +1,7 @@
 import math
 
-from Audio.Preprocessing.labels_utils import extend_sample_rate_of_labels
-from Audio.Training.utils import how_many_windows_do_i_need
+from Audio.Classification.Preprocessing.labels_utils import extend_sample_rate_of_labels
+from Audio.Classification.Training.utils import how_many_windows_do_i_need
 import numpy as np
 
 class Database_instance():

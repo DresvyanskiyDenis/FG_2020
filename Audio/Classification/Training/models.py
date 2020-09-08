@@ -13,7 +13,7 @@ def CNN_1D_model(input_shape, num_classes):
     model.add(tf.keras.layers.Conv1D(filters=256, kernel_size=6, strides=1, activation='relu', padding='same'       ))
     model.add(tf.keras.layers.Dropout(0.3))
     model.add(tf.keras.layers.MaxPool1D(pool_size=8))
-    model.add(tf.keras.layers.Conv1D(filters=256, kernel_size=5, strides=1, activation='relu', padding='same'       ))
+    model.add(tf.keras.layers.Conv1D(filters=256, kernel_size=5, strides=1, activation='relu', padding='same', kernel_initializer=tf.keras.initializers.he_uniform()       ))
     model.add(tf.keras.layers.Dropout(0.3))
     model.add(tf.keras.layers.AvgPool1D(pool_size=4))
     model.add(tf.keras.layers.LSTM(256, return_sequences=True))

@@ -2,22 +2,14 @@ import gc
 import os
 import pandas as pd
 import numpy as np
-from scipy.io import wavfile
-from sklearn.metrics import accuracy_score, f1_score
 from sklearn.utils import class_weight
 from tensorflow.keras import backend as K
 
-from Audio.Training.Database import Database
-from Audio.Training.Metric_calculator import Metric_calculator
-from Audio.Training.models import LSTM_model
-from Audio.Training.utils import generate_weights, load_data_csv, load_labels, plot_confusion_matrix
+from Audio.Classification.Training.Database import Database
+from Audio.Classification.Training.Metric_calculator import Metric_calculator
+from Audio.Classification.Training.models import LSTM_model
+from Audio.Classification.Training.utils import generate_weights, load_data_csv, load_labels, plot_confusion_matrix
 import tensorflow as tf
-import matplotlib.pyplot as plt
-
-from sklearn import svm, datasets
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import confusion_matrix
-from sklearn.utils.multiclass import unique_labels
 
 
 def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_validation, path_to_output, window_size, window_step, class_weights_mode='my_realisation'):
@@ -139,7 +131,7 @@ if __name__ == "__main__":
     path_to_data='D:\\Databases\\AffWild2\\MFCC_features\\'
     path_to_labels_train='D:\\Databases\\AffWild2\\Annotations\\EXPR_Set\\train\\dropped14_interpolated10\\'
     path_to_labels_validation = 'D:\\Databases\\AffWild2\\Annotations\\EXPR_Set\\validation\\Aligned_labels_reduced\\sample_rate_5\\'
-    path_to_output='results\\'
+    path_to_output= 'results\\'
     if not os.path.exists(path_to_output):
         os.mkdir(path_to_output)
     data_directories=os.listdir(path_to_data)

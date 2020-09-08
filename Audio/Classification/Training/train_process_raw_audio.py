@@ -3,11 +3,11 @@ import pandas as pd
 import numpy as np
 from sklearn.utils import class_weight
 
-from Audio.Training.Metric_calculator import Metric_calculator
-from Audio.Training.models import CNN_1D_model
-from Audio.Training.Database import Database
-from Audio.Training.Generator_audio import batch_generator_cut_data, predict_data_with_model
-from Audio.Training.utils import load_labels, load_data_wav, generate_weights, find_the_greatest_class_in_array
+from Audio.Classification.Training.Metric_calculator import Metric_calculator
+from Audio.Classification.Training.models import CNN_1D_model
+from Audio.Classification.Training.Database import Database
+from Audio.Classification.Training.Generator_audio import batch_generator_cut_data, predict_data_with_model
+from Audio.Classification.Training.utils import load_labels, load_data_wav, generate_weights, find_the_greatest_class_in_array
 import tensorflow as tf
 
 
@@ -126,7 +126,7 @@ if __name__ == "__main__":
     path_to_data='D:\\Databases\\AffWild2\\Separated_audios\\'
     path_to_labels_train='D:\\Databases\\AffWild2\\Annotations\\EXPR_Set\\train\\dropped14_interpolated10\\'
     path_to_labels_validation = 'D:\\Databases\\AffWild2\\Annotations\\EXPR_Set\\validation\\Aligned_labels_reduced\\sample_rate_5\\'
-    path_to_output='results\\'
+    path_to_output= 'results\\'
 
     if not os.path.exists(path_to_output):
         os.mkdir(path_to_output)
