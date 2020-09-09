@@ -48,6 +48,7 @@ def plot_confusion_matrix(y_true, y_pred, classes,
                           normalize=False,
                           title=None,
                           cmap=plt.cm.Blues,
+                          mode='show',
                           path_to_save=''):
     """
     This function prints and plots the confusion matrix.
@@ -96,11 +97,10 @@ def plot_confusion_matrix(y_true, y_pred, classes,
                     ha="center", va="center",
                     color="white" if cm[i, j] > thresh else "black")
     fig.tight_layout()
-    if path_to_save!='':
-        plt.savefig(path_to_save + 'confusion_matrix.png')
-    else:
+    if mode=='show':
         plt.show()
-    return ax
+    elif mode=='save':
+        plt.savefig(path_to_save + 'confusion_matrix.png')
 
 def load_labels(path_to_labels):
     f = open(path_to_labels, 'r')

@@ -4,6 +4,7 @@ import os
 from sklearn.preprocessing import StandardScaler
 
 from Audio.Classification.Training.Database_instance import Database_instance
+from Audio.Classification.Training.utils import plot_confusion_matrix
 
 
 class Database():
@@ -30,6 +31,7 @@ class Database():
         # Since all labels are represented by only one file, for computational effeciency firstly we load all labels
         # and then give them to different loaded audiofiles
         list_labels_filenames=os.listdir(self.path_to_labels)
+        counter=0
         for labels_filename in list_labels_filenames:
             instance = Database_instance()
             instance.loading_data_function=loading_data_function
@@ -37,6 +39,8 @@ class Database():
             instance.labels, instance.labels_frame_rate=loading_labels_function(self.path_to_labels+labels_filename)
             instance.generate_timesteps_for_labels()
             self.data_instances.append(instance)
+            print(counter, len(list_labels_filenames))
+            counter+=1
         self.data_frame_rate=self.data_instances[0].data_frame_rate
         self.labels_frame_rate = self.data_instances[0].labels_frame_rate
 
@@ -133,3 +137,14 @@ class Database():
         # return scaler if need
         if return_scaler==True:
             return scaler
+
+    def plot_confusion_matrix(self):
+        ground_truth_all = np.zeros((0,))
+        predictions_all = np.zeros((0,))
+        for instance in self.data_instances:
+            ground_truth_all = np.concatenate((ground_truth_all, instance.labels))
+            predictions_all = np.concatenate((predictions_all, instance.predictions))
+
+        ax = plot_confusion_matrix(y_true=ground_truth_all,
+                                   y_pred=predictions_all,
+                                   classes=np.unique(ground_truth_all))

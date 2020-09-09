@@ -68,6 +68,20 @@ class Metric_calculator():
         predictions_all=predictions_all[mask]
         return 0.67*f1_score(ground_truth_all, predictions_all, average='macro')+0.33*accuracy_score(ground_truth_all, predictions_all)
 
+    def calculate_FG_2020_F1_and_accuracy_scores_across_all_instances(self, instances, delete_value=-1):
+        # TODO: peredelat na bolee logichniy lad. Eto poka chto bistroo reshenie
+        ground_truth_all=np.zeros((0,))
+        predictions_all=np.zeros((0,))
+        for instance in instances:
+            ground_truth_all=np.concatenate((ground_truth_all, instance.labels))
+            predictions_all = np.concatenate((predictions_all, instance.predictions))
+        mask=ground_truth_all!=delete_value
+        ground_truth_all=ground_truth_all[mask]
+        predictions_all=predictions_all[mask]
+        return 0.67*f1_score(ground_truth_all, predictions_all, average='macro')+0.33*accuracy_score(ground_truth_all, predictions_all), \
+               f1_score(ground_truth_all, predictions_all, average='macro'), \
+               accuracy_score(ground_truth_all, predictions_all)
+
 
     def calculate_accuracy(self):
         return accuracy_score(self.ground_truth, self.predictions)
