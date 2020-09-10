@@ -53,6 +53,44 @@ def extract_cutted_data_labels_from_given_indexes(dataframe_indexes, dict_instan
 
     return result_data, result_labels
 
+def extract_cutted_data_and_timesteps_from_given_indexes(dataframe_indexes, dict_instances, result_data_shape, result_timesteps_shape):
+    """This function extracts data and labels in window format via corresponding indexes located in dataframe_indexes
+       Cut format is needed for train recurrent models. The technique of converting:
+       for example, if we have sequence [1 2 3 4 5 6 7 8], window_size=4, window_step=3 then
+       dataframe_indexes can be as [0, 4] - it is indexes
+                                   [3, 7]
+                                   [4, 8]
+
+        1st window: |1 2 3 4| 5 6 7 8
+                  ......
+        2nd window: 1 2 3 |4 5 6 7| 8
+                        ..
+        3rd window: 1 2 3 4 |5 6 7 8|
+
+    :param dataframe_indexes: DataFrame, contains filename and indexes of data and labesl windows
+    :param dict_instances: dictionary, key: filename, value:Database_instance()
+    :param result_data_shape: tuple, the shape of generated labels
+    :param result_lbs_shape: tuple, the shape of generated labels
+    :return: result_data: ndarray, windowed data generated from indexes dataframe_indexes
+             result_labels: ndarray, windowed labels generated from indexes dataframe_indexes
+    """
+    result_data = np.zeros(result_data_shape, dtype='float32')
+    result_timesteps = np.zeros(result_timesteps_shape, dtype='float32')
+    for i in range(dataframe_indexes.shape[0]):
+        start_idx_data, end_idx_data,start_idx_lbs, end_idx_lbs = dataframe_indexes.iloc[i, :].values
+        filename = dataframe_indexes.index[i]
+        # Padding if the shape of data less then window size
+        if start_idx_data==0 and end_idx_data>dict_instances[filename].data.shape[0]:
+            result_data[i]=np.zeros(shape=(end_idx_data-start_idx_data,)+dict_instances[filename].data.shape[1:])
+            result_data[i,:dict_instances[filename].data.shape[0]]=dict_instances[filename].data
+            result_timesteps[i]=np.zeros(shape=(end_idx_lbs-start_idx_lbs,)+dict_instances[filename].labels.shape[1:])
+            result_timesteps[i,:dict_instances[filename].labels.shape[0]]=dict_instances[filename].labels_timesteps
+            return result_data, result_timesteps
+        result_data[i] = dict_instances[filename].data[start_idx_data:end_idx_data]
+        result_timesteps[i] = dict_instances[filename].labels_timesteps[start_idx_lbs:end_idx_lbs]
+
+    return result_data, result_timesteps
+
 
 def batch_generator_cut_data(instances, batch_size=32, need_shuffle=False, need_sample_weight=False, class_weights=None):
     """This generator extracts indexes of windows from all instances, which are Database_instance() objects
@@ -132,14 +170,24 @@ def predict_data_with_model(model, instances, prediction_mode='sequence_to_seque
         filename_instance_dict[instance.filename] = instance
 
     for instance in instances:
-        data_window_indexes=instance.cutted_data_indexes
-        labels_window_indexes=instance.cutted_labels_indexes
-        cut_data=np.zeros((data_window_indexes.shape[0], data_window_size,instance.data.shape[1]))
-        cut_timesteps=np.zeros((data_window_indexes.shape[0],labels_window_size))
-        for i in range(data_window_indexes.shape[0]):
-            cut_data[i]=instance.data[data_window_indexes[i,0]:data_window_indexes[i,1]]
-            cut_timesteps[i]=instance.labels_timesteps[labels_window_indexes[i,0]:labels_window_indexes[i,1]]
+        dataframe_indexes=pd.DataFrame(columns=['filename', 'data_start_idx', 'data_end_idx', 'label_start_idx', 'label_end_idx'])
+        dataframe_indexes=dataframe_indexes.set_index('filename')
+        data_indexes = instance.cutted_data_indexes
+        labels_indexes = instance.cutted_labels_indexes
+        concatenated = np.concatenate((data_indexes, labels_indexes), axis=1)
+        dataframe_indexes = dataframe_indexes.append(pd.DataFrame(columns=dataframe_indexes.columns, data=concatenated, index=[instance.filename for i in range(concatenated.shape[0])]))
+        # shapes of needed arrays of cutted data and labels
+        future_cut_data_shape = (dataframe_indexes.shape[0], data_window_size, 1)
+        future_cut_lbs_shape = (dataframe_indexes.shape[0], labels_window_size)
+
+        # start of extracting cutted data and labels from generated indexes
+        cut_data, cut_timesteps = extract_cutted_data_and_timesteps_from_given_indexes(
+            dataframe_indexes=dataframe_indexes,
+            dict_instances=filename_instance_dict,
+            result_data_shape=future_cut_data_shape,
+            result_timesteps_shape=future_cut_lbs_shape)
         predictions=model.predict(cut_data, batch_size=1)
+
         # if we have only one predicted labels per whole window, we need to extend it
         if prediction_mode=='sequence_to_one':
             extended_predictions=np.zeros(cut_timesteps.shape+(predictions.shape[-1],))
