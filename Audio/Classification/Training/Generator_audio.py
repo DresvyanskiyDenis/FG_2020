@@ -198,5 +198,7 @@ def predict_data_with_model(model, instances, prediction_mode='sequence_to_seque
         cut_timesteps=cut_timesteps.reshape((-1,1))
         metric_calculator = Metric_calculator(predictions, cut_timesteps,
                                               ground_truth=instance.labels)
+        metric_calculator.average_cutted_predictions_by_timestep(mode='categorical_labels')
         metric_calculator.average_cutted_predictions_by_timestep(mode='categorical_probabilities')
         instance.predictions = metric_calculator.predictions
+        instance.predictions_probabilities=metric_calculator.predictions_probabilities

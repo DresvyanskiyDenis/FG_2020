@@ -22,6 +22,7 @@ class Database_instance():
         self.labels_timesteps= None
         self.cutted_predictions=None
         self.predictions=None
+        self.predictions_probabilities=None
         self.loading_data_function=None
 
     def load_data(self, path_to_data):

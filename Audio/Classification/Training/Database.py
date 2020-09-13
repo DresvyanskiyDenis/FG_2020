@@ -138,12 +138,15 @@ class Database():
         if return_scaler==True:
             return scaler
 
-    def plot_confusion_matrix(self):
+    def plot_confusion_matrix(self, delete_value=-1):
         ground_truth_all = np.zeros((0,))
         predictions_all = np.zeros((0,))
         for instance in self.data_instances:
             ground_truth_all = np.concatenate((ground_truth_all, instance.labels))
             predictions_all = np.concatenate((predictions_all, instance.predictions))
+        mask = ground_truth_all != delete_value
+        ground_truth_all = ground_truth_all[mask]
+        predictions_all = predictions_all[mask]
 
         ax = plot_confusion_matrix(y_true=ground_truth_all,
                                    y_pred=predictions_all,

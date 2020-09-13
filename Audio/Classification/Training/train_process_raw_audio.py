@@ -11,6 +11,7 @@ from Audio.Classification.Training.utils import load_labels, load_data_wav, gene
 import tensorflow as tf
 
 
+
 def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_validation, path_to_output, window_size, window_step,
                         class_weights_mode='my_realisation', prediction_mode='sequence_to_sequence', save_model_every_batch=False,
                         load_weights_before_training=False, path_to_weights=None, validation_value_best_model=None):
@@ -131,7 +132,9 @@ if __name__ == "__main__":
     if not os.path.exists(path_to_output):
         os.mkdir(path_to_output)
     #data_directories=os.listdir(path_to_data)
+
     window_sizes=[4]
+
     results=pd.DataFrame(columns=['data directory', 'window size', 'validation_result'])
     class_weights_mode='scikit'
     prediction_mode='sequence_to_one'

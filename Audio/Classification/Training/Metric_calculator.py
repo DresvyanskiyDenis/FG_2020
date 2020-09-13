@@ -34,9 +34,10 @@ class Metric_calculator():
         self.predictions=None
         self.cutted_predictions=cutted_predictions
         self.cutted_labels_timesteps=cutted_labels_timesteps
+        self.predictions_probabilities=None
 
     def average_cutted_predictions_by_timestep(self, mode='regression'):
-        """This function averages cutted predictions. For more info see description of class
+        """This function averages cut predictions. For more info see description of class
         :return: None
         """
         if mode=='regression':
@@ -45,15 +46,18 @@ class Metric_calculator():
             dataframe_for_avg=pd.DataFrame(columns=['prediction','timestep'], data=np.concatenate((cutted_predictions_flatten, cutted_labels_timesteps_flatten), axis=1))
             dataframe_for_avg=dataframe_for_avg.groupby(by=['timestep']).mean()
             self.predictions=dataframe_for_avg['prediction'].values
-        elif mode=='categorical_probabilities':
+        elif 'categorical' in mode:
             cutted_predictions_flatten=self.cutted_predictions.reshape((-1, self.cutted_predictions.shape[-1]))
             cutted_labels_timesteps_flatten=self.cutted_labels_timesteps.reshape((-1,1))
             dataframe_for_avg=pd.DataFrame(data=np.concatenate((cutted_labels_timesteps_flatten, cutted_predictions_flatten), axis=1))
             dataframe_for_avg=dataframe_for_avg.rename(columns={0:'timestep'})
             dataframe_for_avg = dataframe_for_avg.groupby(by=['timestep']).mean()
             predictions_probabilities=dataframe_for_avg.iloc[:].values
-            predictions_probabilities=np.argmax(predictions_probabilities, axis=-1)
-            self.predictions=predictions_probabilities
+            if mode=='categorical_labels':
+                predictions_probabilities=np.argmax(predictions_probabilities, axis=-1)
+                self.predictions=predictions_probabilities
+            elif mode=='categorical_probabilities':
+                self.predictions_probabilities=predictions_probabilities
 
 
     def calculate_FG_2020_categorical_score_across_all_instances(self, instances, delete_value=-1):

@@ -106,7 +106,7 @@ def construct_video_filename_from_label(path_to_video, label_filename):
     :param label_filename: string, filename of labels
     :return: string, video filename (e. g. 405.mp4)
     """
-    video_filename = label_filename.split('_left')[0].split('_right')[0].split('.')[0]
+    video_filename = label_filename.split('_left')[0].split('_right')[0].split('_vocals')[0].split('.')[0]
     if os.path.exists(path_to_video + video_filename + '.mp4'):
         video_filename += '.mp4'
     if os.path.exists(path_to_video + video_filename + '.avi'):
@@ -155,7 +155,7 @@ def align_number_videoframes_and_labels(path_to_video, path_to_label):
     """
     cap = cv2.VideoCapture(path_to_video)
     video_frame_length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    labels=pd.read_csv(path_to_label)
+    labels=pd.read_csv(path_to_label, skiprows=1,header=None)
     labels=labels.values.astype('float32')
     aligned_labels = np.zeros(shape=(video_frame_length, labels.shape[1]), dtype='float32')
     if video_frame_length<=labels.shape[0]:
@@ -167,7 +167,7 @@ def align_number_videoframes_and_labels(path_to_video, path_to_label):
     return aligned_labels
 
 
-def align_number_videoframes_and_labels_all_data(path_to_video, path_to_labels, output_path):
+def align_number_videoframes_and_labels_all_data(path_to_video, path_to_labels, need_save=True, output_path=''):
     """This function exploits the align_number_videoframes_and_labels() function to align all labels located in
        the directory path_to_labels. Processed labels will be saved in output_path directory.
 
@@ -181,7 +181,7 @@ def align_number_videoframes_and_labels_all_data(path_to_video, path_to_labels, 
     labels_filenames=os.listdir(path_to_labels)
     for lbs_filename in labels_filenames:
         # get a video filename to calculate then frames
-        video_filename=lbs_filename.split('_left')[0].split('_right')[0].split('.')[0]
+        video_filename=lbs_filename.split('_left')[0].split('_right')[0].split('_vocals')[0].split('.')[0]
         if os.path.exists(path_to_video+video_filename+'.mp4'):
             video_filename+='.mp4'
         if os.path.exists(path_to_video+video_filename+'.avi'):
@@ -189,7 +189,31 @@ def align_number_videoframes_and_labels_all_data(path_to_video, path_to_labels, 
         aligned_labels=align_number_videoframes_and_labels(path_to_video=path_to_video+video_filename,
                                                            path_to_label=path_to_labels+lbs_filename)
         aligned_labels=pd.DataFrame(aligned_labels)
-        aligned_labels.to_csv(output_path+lbs_filename, index=False, header=False)
+        if need_save:
+            aligned_labels.to_csv(output_path+lbs_filename, index=False, header=False)
+        return aligned_labels
+
+def extend_sample_rate_labels_regarding_video_frame_rate(path_to_labels, path_to_video, labels_frame_rate=5, need_save=True, path_to_output=''):
+    labels_filenames = os.listdir(path_to_labels)
+    if not os.path.exists(path_to_output):
+        os.mkdir(path_to_output)
+    for lbs_filename in labels_filenames:
+        labels = pd.read_csv(path_to_labels + lbs_filename, header=None)
+        video_filename = construct_video_filename_from_label(path_to_video=path_to_video,
+                                                             label_filename=lbs_filename)
+
+        video_frame_rate = get_video_frame_rate(path_to_video + video_filename)
+
+        labels = extend_sample_rate_of_labels(labels, labels_frame_rate, video_frame_rate)
+        labels = labels.astype('float32')
+        labels = pd.DataFrame(labels)
+        if need_save:
+            f = open(path_to_output + lbs_filename, 'w')
+            f.write('Sample rate:%f' % video_frame_rate + '\n')
+            f.close()
+            labels.to_csv(path_to_output + lbs_filename, index=False, header=False, mode='a')
+        return labels
+
 
 
 if __name__ == "__main__":
