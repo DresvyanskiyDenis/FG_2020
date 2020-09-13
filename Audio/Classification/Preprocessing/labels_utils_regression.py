@@ -22,6 +22,42 @@ def generate_extended_array_with_key_points(array_to_extend, new_size_of_array, 
         idx_array_to_extend+=1
     return expanded_numpy
 
+def transform_probabilities_to_original_sample_rate(database_instances, path_to_video, original_sample_rate, need_save=True, path_to_output=''):
+    dict_filename_to_aligned_predictions={}
+    for instance in database_instances:
+        # extending
+        predictions=instance.predictions_probabilities
+        lbs_filename=instance.filename
+        predictions=pd.DataFrame(data=predictions)
+        video_filename = construct_video_filename_from_label(path_to_video=path_to_video,
+                                                             label_filename=lbs_filename)
+        video_frame_rate = get_video_frame_rate(path_to_video + video_filename)
+
+        predictions = extend_sample_rate_of_labels(predictions, original_sample_rate, video_frame_rate)
+        predictions = predictions.astype('float32')
+        # align to video amount of frames
+        cap = cv2.VideoCapture(path_to_video+ video_filename)
+        video_frame_length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+        aligned_predictions = np.zeros(shape=(video_frame_length, predictions.shape[1]), dtype='float32')
+        predictions=predictions.values
+        if video_frame_length <= predictions.shape[0]:
+            aligned_predictions[:] = predictions[:video_frame_length]
+        else:
+            aligned_predictions[:predictions.shape[0]] = predictions[:]
+            value_to_fill = predictions[-1]
+            aligned_predictions[predictions.shape[0]:] = value_to_fill
+        if need_save:
+            if not os.path.exists(path_to_output):
+                os.mkdir(path_to_output)
+            f = open(path_to_output + lbs_filename.split('_vocal')[0]+'.csv', 'w')
+            f.write('Sample rate:%i' % video_frame_rate + '\n')
+            f.close()
+            aligned_predictions=pd.DataFrame(data=aligned_predictions)
+            aligned_predictions.to_csv(path_to_output+lbs_filename.split('_vocal')[0]+'.csv', header=False, index=False)
+            # you need to return also
+        dict_filename_to_aligned_predictions[lbs_filename+'.csv']=aligned_predictions
+    return dict_filename_to_aligned_predictions
 
 
 

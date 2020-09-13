@@ -1,6 +1,11 @@
+import os
+
 from sklearn.metrics import f1_score, accuracy_score
 import numpy as np
 import pandas as pd
+
+from Audio.Classification.Preprocessing.labels_utils_regression import transform_probabilities_to_original_sample_rate
+
 
 class Metric_calculator():
     """This class is created to calculate metrics.
@@ -86,6 +91,39 @@ class Metric_calculator():
                f1_score(ground_truth_all, predictions_all, average='macro'), \
                accuracy_score(ground_truth_all, predictions_all)
 
+    def calculate_FG_2020_F1_and_accuracy_scores_with_extended_predictions(self, instances, path_to_video, path_to_real_labels, original_sample_rate, delete_value=-1):
+        transformed_dict=transform_probabilities_to_original_sample_rate(database_instances=instances, path_to_video=path_to_video, original_sample_rate=original_sample_rate, need_save=False)
+        real_filenames = os.listdir(path_to_real_labels)
+        total_predictions = pd.DataFrame()
+        total_labels = pd.DataFrame()
+        for real_labels_filename in real_filenames:
+            predictions_filename = real_labels_filename.split('.')[0].split('_right')[0].split('_left')[
+                                       0] + '_vocals.csv'
+            predictions = transformed_dict[predictions_filename]
+            if total_predictions.shape[0] == 0:
+                total_predictions = predictions
+            else:
+                total_predictions = total_predictions.append(predictions)
+
+            real_labels = pd.read_csv(path_to_real_labels + real_labels_filename, header=None)
+            if total_labels.shape[0] == 0:
+                total_labels = real_labels
+            else:
+                total_labels = total_labels.append(real_labels)
+
+        total_predictions = np.argmax(total_predictions.values, axis=-1)
+        mask = total_labels != delete_value
+        total_labels = total_labels[mask]
+        total_predictions = total_predictions[mask]
+        print('final_metric:',
+              0.67 * f1_score(total_labels, total_predictions, average='macro') + 0.33 * accuracy_score(total_labels,
+                                                                                                        total_predictions))
+        print('F1:', f1_score(total_labels, total_predictions, average='macro'))
+        print('accuracy:', accuracy_score(total_labels, total_predictions))
+
+        return 0.67 * f1_score(total_labels, total_predictions, average='macro') + 0.33 * accuracy_score(total_labels,total_predictions), \
+               f1_score(total_labels, total_predictions, average='macro'),\
+               accuracy_score(total_labels, total_predictions)
 
     def calculate_accuracy(self):
         return accuracy_score(self.ground_truth, self.predictions)

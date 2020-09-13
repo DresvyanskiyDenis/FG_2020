@@ -37,6 +37,7 @@ def fill_gap_between_two_points(left_value, right_value, num_points):
 
 
 
+
 def extend_sample_rate_of_labels(labels, original_sample_rate, needed_sample_rate):
     """This function extends sample rate of provided labels from original_sample_rate to needed_sample_rate
        by stretching existing labels with calculated ratio

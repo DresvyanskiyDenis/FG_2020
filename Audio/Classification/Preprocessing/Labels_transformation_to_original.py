@@ -5,13 +5,10 @@ import os
 import tensorflow as tf
 from sklearn.metrics import f1_score, accuracy_score
 
-from Audio.Classification.Preprocessing.labels_utils_regression import \
-    align_number_videoframes_and_labels_all_data, \
-    construct_video_filename_from_label, get_video_frame_rate, extend_sample_rate_of_labels
+from Audio.Classification.Preprocessing.labels_utils_regression import transform_probabilities_to_original_sample_rate
 from Audio.Classification.Training.Database import Database
-from Audio.Classification.Training.Generator_audio import predict_data_with_model
-from Audio.Classification.Training.Metric_calculator import Metric_calculator
-from Audio.Classification.Training.models import LSTM_model, CNN_1D_model
+from Audio.Classification.Training.Generator_audio import predict_data_with_the_model
+
 from Audio.Classification.Training.utils import load_data_csv, load_labels, plot_confusion_matrix, load_data_wav
 
 from Audio.Classification.Training.models import CNN_1D_model
@@ -20,7 +17,7 @@ from Audio.Classification.Training.models import CNN_1D_model
 def generate_predictions(database, model, need_save=True, path_to_save_predictions=''):
 
     # calculate metric
-    predict_data_with_model(model, database.data_instances, prediction_mode=prediction_mode)
+    predict_data_with_the_model(model, database.data_instances, prediction_mode=prediction_mode)
 
     if need_save:
         if not os.path.exists(path_to_save_predictions):
@@ -29,45 +26,6 @@ def generate_predictions(database, model, need_save=True, path_to_save_predictio
             pd.DataFrame(data=instance.predictions_probabilities).to_csv(
                 path_to_save_predictions + instance.filename + '.csv', header=False,
                 index=False)
-
-
-def transform_probabilities_to_original_sample_rate(database_instances, path_to_video, original_sample_rate, need_save=True, path_to_output=''):
-    dict_filename_to_aligned_predictions={}
-    for instance in database_instances:
-        # extending
-        predictions=instance.predictions_probabilities
-        lbs_filename=instance.filename
-        predictions=pd.DataFrame(data=predictions)
-        video_filename = construct_video_filename_from_label(path_to_video=path_to_video,
-                                                             label_filename=lbs_filename)
-        video_frame_rate = get_video_frame_rate(path_to_video + video_filename)
-
-        predictions = extend_sample_rate_of_labels(predictions, original_sample_rate, video_frame_rate)
-        predictions = predictions.astype('float32')
-        # align to video amount of frames
-        cap = cv2.VideoCapture(path_to_video+ video_filename)
-        video_frame_length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-
-        aligned_predictions = np.zeros(shape=(video_frame_length, predictions.shape[1]), dtype='float32')
-        predictions=predictions.values
-        if video_frame_length <= predictions.shape[0]:
-            aligned_predictions[:] = predictions[:video_frame_length]
-        else:
-            aligned_predictions[:predictions.shape[0]] = predictions[:]
-            value_to_fill = predictions[-1]
-            aligned_predictions[predictions.shape[0]:] = value_to_fill
-        if need_save:
-            if not os.path.exists(path_to_output):
-                os.mkdir(path_to_output)
-            f = open(path_to_output + lbs_filename.split('_vocal')[0]+'.csv', 'w')
-            f.write('Sample rate:%i' % video_frame_rate + '\n')
-            f.close()
-            aligned_predictions=pd.DataFrame(data=aligned_predictions)
-            aligned_predictions.to_csv(path_to_output+lbs_filename.split('_vocal')[0]+'.csv', header=False, index=False)
-            # you need to return also
-        dict_filename_to_aligned_predictions[lbs_filename+'.csv']=aligned_predictions
-    return dict_filename_to_aligned_predictions
-
 
 
 if __name__ == "__main__":
@@ -142,8 +100,11 @@ if __name__ == "__main__":
         else:
             total_labels=total_labels.append(real_labels)
 
-    print(total_predictions.shape)
-    total_predictions=np.argmax(total_predictions.values, axis=-1)
+    total_predictions=np.argmax(total_predictions.values, axis=-1).reshape((-1,1))
+    mask = total_labels != -1
+    total_labels = total_labels[mask]
+    total_predictions = total_predictions[mask]
+
     print('final_metric:',0.67*f1_score(total_labels, total_predictions, average='macro')+0.33*accuracy_score(total_labels, total_predictions))
     print('F1:',f1_score(total_labels, total_predictions, average='macro'))
     print('accuracy:',accuracy_score(total_labels, total_predictions))

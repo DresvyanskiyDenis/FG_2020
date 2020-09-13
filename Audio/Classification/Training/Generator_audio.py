@@ -161,7 +161,7 @@ def batch_generator_cut_data(instances, batch_size=32, need_shuffle=False, need_
         else:
             yield cutted_data, cutted_labels
 
-def predict_data_with_model(model, instances, prediction_mode='sequence_to_sequence'):
+def predict_data_with_the_model(model, instances, prediction_mode='sequence_to_sequence'):
     data_window_size = instances[0].data_window_size
     labels_window_size=instances[0].labels_window_size
     # for access to instances via filename
