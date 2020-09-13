@@ -9,6 +9,7 @@ class Database_instance():
        including data and labels"""
     def __init__(self):
         self.filename=None
+        self.label_filename=''
         self.data_window_size = None
         self.data_window_step = None
         self.labels_window_size = None

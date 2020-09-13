@@ -36,6 +36,7 @@ class Database():
             instance = Database_instance()
             instance.loading_data_function=loading_data_function
             instance.load_data(self.path_to_data + labels_filename.split('_left')[0].split('_right')[0].split('.')[0]+self.data_postfix+'.'+self.data_filetype)
+            instance.label_filename=labels_filename.split('.')[0]
             instance.labels, instance.labels_frame_rate=loading_labels_function(self.path_to_labels+labels_filename)
             instance.generate_timesteps_for_labels()
             self.data_instances.append(instance)

@@ -87,7 +87,7 @@ if __name__ == "__main__":
     total_predictions=pd.DataFrame()
     total_labels=pd.DataFrame()
     for real_labels_filename in real_filenames:
-        predictions_filename=real_labels_filename.split('.')[0].split('_right')[0].split('_left')[0]+'_vocals.csv'
+        predictions_filename=real_labels_filename.split('.')[0]+'.csv'
         predictions=dict_filename_to_predictions[predictions_filename]
         if total_predictions.shape[0]==0:
             total_predictions=predictions
@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
     total_predictions=np.argmax(total_predictions.values, axis=-1).reshape((-1,1))
     mask = total_labels != -1
-    total_labels = total_labels[mask]
+    total_labels = total_labels.values[mask]
     total_predictions = total_predictions[mask]
 
     print('final_metric:',0.67*f1_score(total_labels, total_predictions, average='macro')+0.33*accuracy_score(total_labels, total_predictions))

@@ -27,7 +27,7 @@ def transform_probabilities_to_original_sample_rate(database_instances, path_to_
     for instance in database_instances:
         # extending
         predictions=instance.predictions_probabilities
-        lbs_filename=instance.filename
+        lbs_filename=instance.label_filename
         predictions=pd.DataFrame(data=predictions)
         video_filename = construct_video_filename_from_label(path_to_video=path_to_video,
                                                              label_filename=lbs_filename)
@@ -50,9 +50,9 @@ def transform_probabilities_to_original_sample_rate(database_instances, path_to_
         if need_save:
             if not os.path.exists(path_to_output):
                 os.mkdir(path_to_output)
-            f = open(path_to_output + lbs_filename.split('_vocal')[0]+'.csv', 'w')
-            f.write('Sample rate:%i' % video_frame_rate + '\n')
-            f.close()
+            #f = open(path_to_output + lbs_filename.split('_vocal')[0]+'.csv', 'w')
+            #f.write('Sample rate:%i' % video_frame_rate + '\n')
+            #f.close()
             aligned_predictions=pd.DataFrame(data=aligned_predictions)
             aligned_predictions.to_csv(path_to_output+lbs_filename.split('_vocal')[0]+'.csv', header=False, index=False)
             # you need to return also
