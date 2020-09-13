@@ -6,7 +6,7 @@ from sklearn.utils import class_weight
 from Audio.Classification.Training.Metric_calculator import Metric_calculator
 from Audio.Classification.Training.models import CNN_1D_model
 from Audio.Classification.Training.Database import Database
-from Audio.Classification.Training.Generator_audio import batch_generator_cut_data, predict_data_with_model
+from Audio.Classification.Training.Generator_audio import batch_generator_cut_data, predict_data_with_the_model
 from Audio.Classification.Training.utils import load_labels, load_data_wav, generate_weights, find_the_greatest_class_in_array
 import tensorflow as tf
 
@@ -105,10 +105,15 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
             #print('Epoch %i, num batch:%i, loss:%f'%(epoch, num_batch,train_result))
             num_batch+=1
             loss_sum+=train_result
-        # calculate metric on validation
-        predict_data_with_model(model, validation_database.data_instances, prediction_mode=prediction_mode)
+        # calculate metric on validation with extension of labels to original sample rate (videos frame rate)
+        predict_data_with_the_model(model, validation_database.data_instances, prediction_mode=prediction_mode)
+
         validation_result = Metric_calculator(None, None,None).\
-            calculate_FG_2020_categorical_score_across_all_instances(validation_database.data_instances)
+            calculate_FG_2020_F1_and_accuracy_scores_with_extended_predictions(instances=validation_database.data_instances,
+                                                                               path_to_video='',
+                                                                               path_to_real_labels='',
+                                                                               original_sample_rate=5,
+                                                                               delete_value=-1)
         print('Epoch %i is ended. Average loss:%f, validation FG-2020 metric:%f' % (epoch, loss_sum / num_batch, validation_result))
         if validation_result>=best_result:
             best_result=validation_result
