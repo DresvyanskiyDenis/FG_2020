@@ -92,14 +92,16 @@ class Metric_calculator():
                accuracy_score(ground_truth_all, predictions_all)
 
     def calculate_FG_2020_F1_and_accuracy_scores_with_extended_predictions(self, instances, path_to_video, path_to_real_labels, original_sample_rate, delete_value=-1):
-        transformed_dict=transform_probabilities_to_original_sample_rate(database_instances=instances, path_to_video=path_to_video, original_sample_rate=original_sample_rate, need_save=False)
+        dict_filename_to_predictions = transform_probabilities_to_original_sample_rate(database_instances=instances,
+                                                                                       path_to_video=path_to_video,
+                                                                                       original_sample_rate=original_sample_rate,
+                                                                                       need_save=False)
         real_filenames = os.listdir(path_to_real_labels)
         total_predictions = pd.DataFrame()
         total_labels = pd.DataFrame()
         for real_labels_filename in real_filenames:
-            predictions_filename = real_labels_filename.split('.')[0].split('_right')[0].split('_left')[
-                                       0] + '_vocals.csv'
-            predictions = transformed_dict[predictions_filename]
+            predictions_filename = real_labels_filename.split('.')[0] + '.csv'
+            predictions = dict_filename_to_predictions[predictions_filename]
             if total_predictions.shape[0] == 0:
                 total_predictions = predictions
             else:
@@ -111,18 +113,13 @@ class Metric_calculator():
             else:
                 total_labels = total_labels.append(real_labels)
 
-        total_predictions = np.argmax(total_predictions.values, axis=-1)
+        total_predictions = np.argmax(total_predictions.values, axis=-1).reshape((-1, 1))
         mask = total_labels != delete_value
-        total_labels = total_labels[mask]
+        total_labels = total_labels.values[mask]
         total_predictions = total_predictions[mask]
-        print('final_metric:',
-              0.67 * f1_score(total_labels, total_predictions, average='macro') + 0.33 * accuracy_score(total_labels,
-                                                                                                        total_predictions))
-        print('F1:', f1_score(total_labels, total_predictions, average='macro'))
-        print('accuracy:', accuracy_score(total_labels, total_predictions))
 
         return 0.67 * f1_score(total_labels, total_predictions, average='macro') + 0.33 * accuracy_score(total_labels,total_predictions), \
-               f1_score(total_labels, total_predictions, average='macro'),\
+               f1_score(total_labels, total_predictions, average='macro'), \
                accuracy_score(total_labels, total_predictions)
 
     def calculate_accuracy(self):

@@ -47,13 +47,13 @@ def transform_probabilities_to_original_sample_rate(database_instances, path_to_
             aligned_predictions[:predictions.shape[0]] = predictions[:]
             value_to_fill = predictions[-1]
             aligned_predictions[predictions.shape[0]:] = value_to_fill
+        aligned_predictions = pd.DataFrame(data=aligned_predictions)
         if need_save:
             if not os.path.exists(path_to_output):
                 os.mkdir(path_to_output)
             #f = open(path_to_output + lbs_filename.split('_vocal')[0]+'.csv', 'w')
             #f.write('Sample rate:%i' % video_frame_rate + '\n')
             #f.close()
-            aligned_predictions=pd.DataFrame(data=aligned_predictions)
             aligned_predictions.to_csv(path_to_output+lbs_filename.split('_vocal')[0]+'.csv', header=False, index=False)
             # you need to return also
         dict_filename_to_aligned_predictions[lbs_filename+'.csv']=aligned_predictions
