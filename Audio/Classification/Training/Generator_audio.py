@@ -1,5 +1,5 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from Audio.Classification.Training.Metric_calculator import Metric_calculator
 

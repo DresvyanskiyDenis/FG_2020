@@ -1,8 +1,10 @@
 import math
 
-from Audio.Classification.Preprocessing.labels_utils import extend_sample_rate_of_labels
-from Audio.Classification.Training.utils import how_many_windows_do_i_need
 import numpy as np
+
+from Audio.Classification.Preprocessing.labels_utils import extend_sample_rate_of_labels
+from Audio.Classification.Training import utils
+
 
 class Database_instance():
     """This class represents one instance of database,
@@ -83,7 +85,7 @@ class Database_instance():
         :param window_step: int, step of window
         :return: 2D ndarray, shape=(num_windows, window_size)
         """
-        num_windows = how_many_windows_do_i_need(sequence.shape[0], window_size, window_step)
+        num_windows = utils.how_many_windows_do_i_need(sequence.shape[0], window_size, window_step)
         cutted_data_indexes=np.zeros(shape=(num_windows, 2))
 
         # if sequence has length less than whole window
@@ -134,7 +136,10 @@ class Database_instance():
             new_shape_labels=self.data.shape[0]
         else:
             new_shape_labels=int(math.ceil(self.data.shape[0]/self.data_frame_rate*self.labels_frame_rate))
-        aligned_labels = np.zeros(shape=(new_shape_labels), dtype='int32')
+        if len(self.labels.shape)>1:
+            aligned_labels = np.zeros(shape=(new_shape_labels,)+self.labels.shape[1:], dtype='int32')
+        else:
+            aligned_labels = np.zeros(shape=(new_shape_labels,), dtype='int32')
         if new_shape_labels <= self.labels.shape[0]:
             aligned_labels[:] = self.labels[:new_shape_labels]
         else:

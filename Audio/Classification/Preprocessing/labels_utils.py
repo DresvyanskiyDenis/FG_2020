@@ -218,6 +218,9 @@ def align_number_videoframes_and_labels_all_data(path_to_video, path_to_labels, 
         aligned_labels.to_csv(output_path+lbs_filename, index=False, header=False)
 
 
+
+
+
 if __name__ == "__main__":
     path_to_video='D:\\Databases\\AffWild2\\Videos\\'
     path_to_original_labels='D:\\Databases\\AffWild2\\Annotations\\EXPR_Set\\train\\Training_Set\\'

@@ -1,13 +1,14 @@
-import os
-
-import pandas as pd
-import numpy as np
-from scipy.io import wavfile
-from sklearn.metrics import accuracy_score, f1_score
 import matplotlib.pyplot as plt
-
+import numpy as np
+import pandas as pd
+from scipy.io import wavfile
 from sklearn.metrics import confusion_matrix
 from sklearn.utils.multiclass import unique_labels
+
+from Audio.Classification.Preprocessing.labels_utils_regression import transform_probabilities_to_original_sample_rate
+from Audio.Classification.Training.Database_instance import Database_instance
+from Audio.Classification.Training.Generator_audio import predict_data_with_the_model
+
 
 def generate_weights(amount_class_array):
     result_weights=amount_class_array/np.sum(amount_class_array)
@@ -124,4 +125,30 @@ def find_the_greatest_class_in_array(array):
     counter_classes=np.unique(array, return_counts=True)
     greatest_class=counter_classes[0][np.argmax(counter_classes[1])]
     return greatest_class
+
+def generate_test_predictions(path_to_data, labels_filename, model, model_output_sample_rate, path_to_video, window_size, window_step, prediction_mode):
+
+    instance = Database_instance()
+    instance.loading_data_function = load_data_wav
+    instance.load_data(path_to_data.split('_left')[0].split('_right')[0].split('_vocals')[0].split('.')[0] +'_vocals.'+path_to_data.split('.')[-1])
+    instance.label_filename = labels_filename
+    instance.labels, instance.labels_frame_rate = np.array([[0],[0]]), model_output_sample_rate
+    instance.align_number_of_labels_and_data()
+    instance.generate_timesteps_for_labels()
+    instance.cut_data_and_labels_on_windows(window_size, window_step)
+    predict_data_with_the_model(model, [instance], prediction_mode=prediction_mode)
+    dict_filename_to_predictions = transform_probabilities_to_original_sample_rate(
+        database_instances=[instance],
+        path_to_video=path_to_video,
+        original_sample_rate=model_output_sample_rate,
+        need_save=False)
+    return dict_filename_to_predictions
+
+def generate_test_predictions_from_list(list_filenames, path_to_data, model, model_output_sample_rate, path_to_video,
+                                        window_size, window_step, path_to_output,prediction_mode):
+    for filename in list_filenames:
+        path_to_audio=path_to_data+filename.split('.')[0]+'_vocals.wav'
+        tmp_dict=generate_test_predictions(path_to_audio,filename, model, model_output_sample_rate, path_to_video, window_size, window_step, prediction_mode)
+        tmp_dict[filename+'.csv'].to_csv(path_to_output+filename+'.csv', header=False, index=False)
+
 
