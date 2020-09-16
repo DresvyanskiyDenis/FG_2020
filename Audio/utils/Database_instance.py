@@ -137,9 +137,9 @@ class Database_instance():
         else:
             new_shape_labels=int(math.ceil(self.data.shape[0]/self.data_frame_rate*self.labels_frame_rate))
         if len(self.labels.shape)>1:
-            aligned_labels = np.zeros(shape=(new_shape_labels,)+self.labels.shape[1:], dtype='int32')
+            aligned_labels = np.zeros(shape=(new_shape_labels,)+self.labels.shape[1:], dtype='float32')
         else:
-            aligned_labels = np.zeros(shape=(new_shape_labels,), dtype='int32')
+            aligned_labels = np.zeros(shape=(new_shape_labels,), dtype='float32')
         if new_shape_labels <= self.labels.shape[0]:
             aligned_labels[:] = self.labels[:new_shape_labels]
         else:

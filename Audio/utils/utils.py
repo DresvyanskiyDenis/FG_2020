@@ -5,10 +5,9 @@ from scipy.io import wavfile
 from sklearn.metrics import confusion_matrix
 from sklearn.utils.multiclass import unique_labels
 
-from Audio.Regression.Preprocessing.labels_utils_regression import transform_probabilities_to_original_sample_rate
-from Audio.utils.Database_instance import Database_instance
-from Audio.utils.Generator_audio import predict_data_with_the_model
 
+from tensorflow.keras import backend as K
+import tensorflow as tf
 
 def generate_weights(amount_class_array):
     result_weights=amount_class_array/np.sum(amount_class_array)
@@ -108,7 +107,7 @@ def load_labels(path_to_labels):
     original_sample_rate = int(f.readline().split(':')[-1])
     f.close()
     labels=pd.read_csv(path_to_labels, skiprows=1,header=None)
-    return labels.values.reshape((-1,)), original_sample_rate
+    return labels.values, original_sample_rate
 
 def load_data_wav(path_to_datafile):
     sample_rate, data = wavfile.read(path_to_datafile)
@@ -126,29 +125,25 @@ def find_the_greatest_class_in_array(array):
     greatest_class=counter_classes[0][np.argmax(counter_classes[1])]
     return greatest_class
 
-def generate_test_predictions(path_to_data, labels_filename, model, model_output_sample_rate, path_to_video, window_size, window_step, prediction_mode):
 
-    instance = Database_instance()
-    instance.loading_data_function = load_data_wav
-    instance.load_data(path_to_data.split('_left')[0].split('_right')[0].split('_vocals')[0].split('.')[0] +'_vocals.'+path_to_data.split('.')[-1])
-    instance.label_filename = labels_filename
-    instance.labels, instance.labels_frame_rate = np.array([[0],[0]]), model_output_sample_rate
-    instance.align_number_of_labels_and_data()
-    instance.generate_timesteps_for_labels()
-    instance.cut_data_and_labels_on_windows(window_size, window_step)
-    predict_data_with_the_model(model, [instance], prediction_mode=prediction_mode)
-    dict_filename_to_predictions = transform_probabilities_to_original_sample_rate(
-        database_instances=[instance],
-        path_to_video=path_to_video,
-        original_sample_rate=model_output_sample_rate,
-        need_save=False)
-    return dict_filename_to_predictions
+def CCC_loss_tf(y_true, y_pred):
+    """
+    This function calculates loss based on concordance correlation coefficient of two series: 'ser1' and 'ser2'
+    TensorFlow methods are used
+    """
+    #tf.print('y_true_shape:',tf.shape(y_true))
+    #tf.print('y_pred_shape:',tf.shape(y_pred))
 
-def generate_test_predictions_from_list(list_filenames, path_to_data, model, model_output_sample_rate, path_to_video,
-                                        window_size, window_step, path_to_output,prediction_mode):
-    for filename in list_filenames:
-        path_to_audio=path_to_data+filename.split('.')[0]+'_vocals.wav'
-        tmp_dict=generate_test_predictions(path_to_audio,filename, model, model_output_sample_rate, path_to_video, window_size, window_step, prediction_mode)
-        tmp_dict[filename+'.csv'].to_csv(path_to_output+filename+'.csv', header=False, index=False)
+    y_true_mean = K.mean(y_true, axis=-2, keepdims=True)
+    y_pred_mean = K.mean(y_pred, axis=-2, keepdims=True)
 
+    y_true_var = K.mean(K.square(y_true-y_true_mean), axis=-2, keepdims=True)
+    y_pred_var = K.mean(K.square(y_pred-y_pred_mean), axis=-2, keepdims=True)
 
+    cov = K.mean((y_true-y_true_mean)*(y_pred-y_pred_mean), axis=-2, keepdims=True)
+
+    ccc = tf.math.multiply(2., cov) / (y_true_var + y_pred_var + K.square(y_true_mean - y_pred_mean) + K.epsilon())
+    ccc_loss=1.-K.mean(K.flatten(ccc))
+    #tf.print('ccc:', tf.shape(ccc_loss))
+    #tf.print('ccc_loss:',ccc_loss)
+    return ccc_loss

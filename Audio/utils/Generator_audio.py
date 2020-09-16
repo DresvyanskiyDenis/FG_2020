@@ -37,7 +37,7 @@ def extract_cutted_data_labels_from_given_indexes(dataframe_indexes, dict_instan
              result_labels: ndarray, windowed labels generated from indexes dataframe_indexes
     """
     result_data = np.zeros(result_data_shape, dtype='float32')
-    result_labels = np.zeros(result_lbs_shape, dtype='int16')
+    result_labels = np.zeros(result_lbs_shape, dtype='float32')
     for i in range(dataframe_indexes.shape[0]):
         start_idx_data, end_idx_data,start_idx_lbs, end_idx_lbs = dataframe_indexes.iloc[i, :].values
         filename = dataframe_indexes.index[i]
@@ -142,8 +142,8 @@ def batch_generator_cut_data(instances, batch_size=32, need_shuffle=False, need_
         else:
             end_idx_windows_indexes=start_idx_windows_indexes+batch_size
         # shapes of needed arrays of cutted data and labels
-        future_cut_data_shape=(end_idx_windows_indexes-start_idx_windows_indexes, data_window_size,1)
-        future_cut_lbs_shape=(end_idx_windows_indexes-start_idx_windows_indexes, labels_window_size)
+        future_cut_data_shape=(end_idx_windows_indexes-start_idx_windows_indexes, data_window_size,instances[0].data.shape[-1])
+        future_cut_lbs_shape=(end_idx_windows_indexes-start_idx_windows_indexes, labels_window_size,instances[0].labels.shape[-1])
 
         # start of extracting cutted data and labels from generated indexes
         current_indexes_of_windows=windows_indexes.iloc[i:(i+batch_size),:]
