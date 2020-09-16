@@ -3,7 +3,7 @@ import math
 import numpy as np
 
 from Audio.Classification.Preprocessing.labels_utils import extend_sample_rate_of_labels
-from Audio.Classification.Training import utils
+from Audio.utils import utils
 
 
 class Database_instance():

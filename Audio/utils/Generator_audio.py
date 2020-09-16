@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from Audio.Classification.Training.Metric_calculator import Metric_calculator
+from Audio.utils.Metric_calculator import Metric_calculator
 
 
 def extract_cutted_values_from_given_indexes(dataframe_indexes, dict_instances, result_array_shape, type_data='data'):

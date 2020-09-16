@@ -5,9 +5,9 @@ from scipy.io import wavfile
 from sklearn.metrics import confusion_matrix
 from sklearn.utils.multiclass import unique_labels
 
-from Audio.Classification.Preprocessing.labels_utils_regression import transform_probabilities_to_original_sample_rate
-from Audio.Classification.Training.Database_instance import Database_instance
-from Audio.Classification.Training.Generator_audio import predict_data_with_the_model
+from Audio.Regression.Preprocessing.labels_utils_regression import transform_probabilities_to_original_sample_rate
+from Audio.utils.Database_instance import Database_instance
+from Audio.utils.Generator_audio import predict_data_with_the_model
 
 
 def generate_weights(amount_class_array):

@@ -2,8 +2,8 @@ import os
 import numpy as np
 import tensorflow as tf
 
-from Audio.Classification.Training.models import CNN_1D_model
-from Audio.Classification.Training.utils import generate_test_predictions_from_list
+from Audio.utils.models import CNN_1D_model
+from Audio.utils.utils import generate_test_predictions_from_list
 
 if __name__ == "__main__":
     path_to_filenames_labels='C:\\Users\\Dresvyanskiy\\Desktop\\expression_test_set.txt'
@@ -12,7 +12,7 @@ if __name__ == "__main__":
     filenames=filenames.reshape((-1,))
     path_to_weights='C:\\Users\\Dresvyanskiy\\Downloads\\best_model_weights_1D_CNN.h5'
     path_to_data='D:\\Databases\\AffWild2\\Separated_audios\\'
-    path_to_output= 'predictions_val\\'
+    path_to_output= '../../logs/predictions_val\\'
     path_to_video='D:\\Databases\\AffWild2\\Videos\\'
     if not os.path.exists(path_to_output):
         os.mkdir(path_to_output)

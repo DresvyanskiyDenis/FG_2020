@@ -5,10 +5,10 @@ import numpy as np
 from sklearn.utils import class_weight
 from tensorflow.keras import backend as K
 
-from Audio.Classification.Training.Database import Database
-from Audio.Classification.Training.Metric_calculator import Metric_calculator
-from Audio.Classification.Training.models import LSTM_model
-from Audio.Classification.Training.utils import generate_weights, load_data_csv, load_labels, plot_confusion_matrix
+from Audio.utils.Database import Database
+from Audio.utils.Metric_calculator import Metric_calculator
+from Audio.utils.models import LSTM_model
+from Audio.utils.utils import generate_weights, load_data_csv, load_labels, plot_confusion_matrix
 import tensorflow as tf
 
 

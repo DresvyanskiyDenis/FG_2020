@@ -4,7 +4,7 @@ from sklearn.metrics import f1_score, accuracy_score
 import numpy as np
 import pandas as pd
 
-from Audio.Classification.Preprocessing.labels_utils_regression import transform_probabilities_to_original_sample_rate
+from Audio.Regression.Preprocessing.labels_utils_regression import transform_probabilities_to_original_sample_rate
 
 
 class Metric_calculator():

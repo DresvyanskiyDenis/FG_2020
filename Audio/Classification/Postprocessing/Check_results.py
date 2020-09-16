@@ -1,9 +1,9 @@
 import tensorflow as tf
-from Audio.Classification.Training.Database import Database
-from Audio.Classification.Training.Generator_audio import predict_data_with_model
-from Audio.Classification.Training.Metric_calculator import Metric_calculator
-from Audio.Classification.Training.models import CNN_1D_model
-from Audio.Classification.Training.utils import load_labels, load_data_wav
+from Audio.utils.Database import Database
+from Audio.utils.Generator_audio import predict_data_with_model
+from Audio.utils.Metric_calculator import Metric_calculator
+from Audio.utils.models import CNN_1D_model
+from Audio.utils.utils import load_labels, load_data_wav
 
 if __name__ == "__main__":
     # data params

@@ -3,11 +3,11 @@ import pandas as pd
 import numpy as np
 from sklearn.utils import class_weight
 
-from Audio.Classification.Training.Metric_calculator import Metric_calculator
-from Audio.Classification.Training.models import CNN_1D_model
-from Audio.Classification.Training.Database import Database
-from Audio.Classification.Training.Generator_audio import batch_generator_cut_data, predict_data_with_the_model
-from Audio.Classification.Training.utils import load_labels, load_data_wav, generate_weights, find_the_greatest_class_in_array
+from Audio.utils.Metric_calculator import Metric_calculator
+from Audio.utils.models import CNN_1D_model
+from Audio.utils.Database import Database
+from Audio.utils.Generator_audio import batch_generator_cut_data, predict_data_with_the_model
+from Audio.utils.utils import load_labels, load_data_wav, generate_weights, find_the_greatest_class_in_array
 import tensorflow as tf
 
 

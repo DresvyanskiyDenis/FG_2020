@@ -3,8 +3,8 @@ import os
 
 from sklearn.preprocessing import StandardScaler
 
-from Audio.Classification.Training.Database_instance import Database_instance
-from Audio.Classification.Training.utils import plot_confusion_matrix
+from Audio.utils.Database_instance import Database_instance
+from Audio.utils.utils import plot_confusion_matrix
 
 
 class Database():
