@@ -31,7 +31,7 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
                                                                return_scaler=False,
                                                                delete_value=None)
 
-    '''# validation data
+    # validation data
     validation_database = Database(path_to_data=path_to_data_train,
                               path_to_labels=path_to_labels_validation,
                               data_filetype='wav',
@@ -41,14 +41,13 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
                                                                  delete_value=None,
                                                                  need_scaling=False,
                                                                  scaler=None,
-                                                                 return_scaler=False)'''
+                                                                 return_scaler=False)
 
 
 
 
     # model params
     model_input=(train_database.data_instances[0].data_window_size,)+train_database.data_instances[0].data.shape[1:]
-    num_classes=7
     batch_size=20
     epochs=2
     optimizer=tf.keras.optimizers.Nadam()
@@ -91,24 +90,25 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
             num_batch+=1
             loss_sum+=train_result
             print(train_result)
-        '''# calculate metric on validation with extension of labels to original sample rate (videos frame rate)
-        predict_data_with_the_model(model, validation_database.data_instances, prediction_mode=prediction_mode)
+        # calculate metric on validation with extension of labels to original sample rate (videos frame rate)
 
-        validation_result = Metric_calculator(None, None,None).\
-            calculate_FG_2020_F1_and_accuracy_scores_with_extended_predictions(instances=validation_database.data_instances,
-                                                                               path_to_video='',
-                                                                               path_to_real_labels='',
+        # TODO: TEST IT
+        predict_data_with_the_model(model, validation_database.data_instances, prediction_mode=prediction_mode, labels_type='regression')
+
+        validation_result = Metric_calculator.calculate_FG_2020_CCC_score_with_extended_predictions(instances=validation_database.data_instances,
+                                                                               path_to_video='D:\\Databases\\AffWild2\\Videos\\',
+                                                                               path_to_real_labels='D:\\Databases\\AffWild2\\Annotations\\VA_Set\\validation\\Aligned_labels\\',
                                                                                original_sample_rate=5,
-                                                                               delete_value=-1)
-        print('Epoch %i is ended. Average loss:%f, validation FG-2020 metric:%f' % (epoch, loss_sum / num_batch, validation_result))
-        if validation_result>=best_result:
-            best_result=validation_result
+                                                                               delete_value=-5)
+        print('Epoch %i is ended. Average loss:%f, valence:%f, arousal:%f' % (epoch, loss_sum / num_batch, validation_result[0], validation_result[1]))
+        if validation_result.mean()>=best_result:
+            best_result=validation_result.mean()
             model.save_weights(path_to_output+'best_model_weights.h5')
             results=pd.DataFrame(columns=['data directory', 'window size', 'validation_result'])
             results=results.append({'data directory':path_to_data, 'window size':window_size, 'validation_result':best_result}, ignore_index=True)
             results.to_csv(path_to_output+'test_results.csv', index=False)
         if save_model_every_batch:
-            model.save_weights(path_to_output + 'last_epoch_model_weights.h5')'''
+            model.save_weights(path_to_output + 'last_epoch_model_weights.h5')
     return best_result
 
 
@@ -117,7 +117,7 @@ if __name__ == "__main__":
     # data params
     path_to_data='D:\\Databases\\AffWild2\\Separated_audios\\'
     path_to_labels_train='D:\\Databases\\AffWild2\\Annotations\\VA_Set\\train\\Aligned_labels_reduced_without_outliers\\'
-    path_to_labels_validation = 'D:\\Databases\\AffWild2\\Annotations\\EXPR_Set\\validation\\Aligned_labels_reduced\\sample_rate_5\\'
+    path_to_labels_validation = 'D:\\Databases\\AffWild2\\Annotations\\VA_Set\\validation\\Aligned_labels_reduced\\'
     path_to_output= 'results\\'
 
     if not os.path.exists(path_to_output):

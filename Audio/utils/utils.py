@@ -131,8 +131,6 @@ def CCC_loss_tf(y_true, y_pred):
     This function calculates loss based on concordance correlation coefficient of two series: 'ser1' and 'ser2'
     TensorFlow methods are used
     """
-    #tf.print('y_true_shape:',tf.shape(y_true))
-    #tf.print('y_pred_shape:',tf.shape(y_pred))
 
     y_true_mean = K.mean(y_true, axis=-2, keepdims=True)
     y_pred_mean = K.mean(y_pred, axis=-2, keepdims=True)
@@ -144,6 +142,23 @@ def CCC_loss_tf(y_true, y_pred):
 
     ccc = tf.math.multiply(2., cov) / (y_true_var + y_pred_var + K.square(y_true_mean - y_pred_mean) + K.epsilon())
     ccc_loss=1.-K.mean(K.flatten(ccc))
-    #tf.print('ccc:', tf.shape(ccc_loss))
-    #tf.print('ccc_loss:',ccc_loss)
     return ccc_loss
+
+def CCC_2_sequences_numpy(y_true, y_pred):
+
+    cor = np.corrcoef(y_true, y_pred)[0][1]
+
+    mean_true = np.mean(y_true)
+    mean_pred = np.mean(y_pred)
+
+    var_true = np.var(y_true)
+    var_pred = np.var(y_pred)
+
+    sd_true = np.std(y_true)
+    sd_pred = np.std(y_pred)
+
+    numerator = 2 * cor * sd_true * sd_pred
+
+    denominator = var_true + var_pred + (mean_true - mean_pred) ** 2
+
+    return numerator / denominator

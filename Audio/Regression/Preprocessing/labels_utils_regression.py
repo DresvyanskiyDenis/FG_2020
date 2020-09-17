@@ -22,11 +22,14 @@ def generate_extended_array_with_key_points(array_to_extend, new_size_of_array, 
         idx_array_to_extend+=1
     return expanded_numpy
 
-def transform_probabilities_to_original_sample_rate(database_instances, path_to_video, original_sample_rate, need_save=True, path_to_output=''):
+def transform_probabilities_to_original_sample_rate(database_instances, path_to_video, original_sample_rate, need_save=True, path_to_output='', labels_type='categorical'):
     dict_filename_to_aligned_predictions={}
     for instance in database_instances:
         # extending
-        predictions=instance.predictions_probabilities
+        if labels_type=='categorical':
+            predictions=instance.predictions_probabilities
+        elif labels_type=='regression':
+            predictions=instance.predictions
         lbs_filename=instance.label_filename
         predictions=pd.DataFrame(data=predictions)
         video_filename = construct_video_filename_from_label(path_to_video=path_to_video,
@@ -227,7 +230,6 @@ def align_number_videoframes_and_labels_all_data(path_to_video, path_to_labels, 
         aligned_labels=pd.DataFrame(aligned_labels)
         if need_save:
             aligned_labels.to_csv(output_path+lbs_filename, index=False, header=False)
-        return aligned_labels
 
 def extend_sample_rate_labels_regarding_video_frame_rate(path_to_labels, path_to_video, labels_frame_rate=5, need_save=True, path_to_output=''):
     labels_filenames = os.listdir(path_to_labels)
@@ -254,20 +256,20 @@ def extend_sample_rate_labels_regarding_video_frame_rate(path_to_labels, path_to
 
 if __name__ == "__main__":
     path_to_video='D:\\Databases\\AffWild2\\Videos\\'
-    path_to_original_labels='D:\\Databases\\AffWild2\\Annotations\\VA_Set\\train\\Training_Set\\'
-    aligned_labels_outputh_path='D:\\Databases\\AffWild2\\Annotations\\VA_Set\\train\\Aligned_labels\\'
-    extended_aligned_labels_outputh_path='D:\\Databases\\AffWild2\\Annotations\\VA_Set\\train\\Aligned_labels_extended\\'
-    downgraded_aligned_labels_outputh_path='D:\\Databases\\AffWild2\\Annotations\\VA_Set\\train\\Aligned_labels_reduced\\'
+    path_to_original_labels='D:\\Databases\\AffWild2\\Annotations\\VA_Set\\validation\\Validation_Set\\'
+    aligned_labels_outputh_path='D:\\Databases\\AffWild2\\Annotations\\VA_Set\\validation\\Aligned_labels\\'
+    extended_aligned_labels_outputh_path='D:\\Databases\\AffWild2\\Annotations\\VA_Set\\validation\\Aligned_labels_extended\\'
+    downgraded_aligned_labels_outputh_path='D:\\Databases\\AffWild2\\Annotations\\VA_Set\\validation\\Aligned_labels_reduced\\'
     sample_rate_for_extension=3000
     sample_rate_for_downgrade=10
-    #align_number_videoframes_and_labels_all_data(path_to_video=path_to_video,
-    #                                             path_to_labels=path_to_original_labels,
-    #                                             output_path=aligned_labels_outputh_path)
+    align_number_videoframes_and_labels_all_data(path_to_video=path_to_video,
+                                                 path_to_labels=path_to_original_labels,
+                                                 output_path=aligned_labels_outputh_path)
 
-    #extend_sample_rate_of_all_labels(path_to_labels=aligned_labels_outputh_path,
-    #                                 path_to_video=path_to_video,
-    #                                 path_to_output=extended_aligned_labels_outputh_path,
-    #                                 needed_sample_rate=sample_rate_for_extension)
+    extend_sample_rate_of_all_labels(path_to_labels=aligned_labels_outputh_path,
+                                     path_to_video=path_to_video,
+                                     path_to_output=extended_aligned_labels_outputh_path,
+                                     needed_sample_rate=sample_rate_for_extension)
 
     downgrade_sample_rate_of_all_labels(path_to_labels=extended_aligned_labels_outputh_path,
                                         path_to_output=downgraded_aligned_labels_outputh_path,

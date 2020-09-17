@@ -35,22 +35,22 @@ def LSTM_model(input_shape, num_classes):
 
 def sequence_to_sequence_regression_model(input_shape):
     model = tf.keras.Sequential()
-    model.add(tf.keras.layers.Conv1D(input_shape=input_shape, filters=128, kernel_size=20, strides=1, activation='relu',
+    model.add(tf.keras.layers.Conv1D(input_shape=input_shape, filters=32, kernel_size=20, strides=1, activation='relu',
                                      padding='same'))
     model.add(tf.keras.layers.Dropout(0.3))
     model.add(tf.keras.layers.MaxPool1D(pool_size=10))
-    model.add(tf.keras.layers.Conv1D(filters=256, kernel_size=10, strides=1, activation='relu', padding='same'))
+    model.add(tf.keras.layers.Conv1D(filters=32, kernel_size=10, strides=1, activation='relu', padding='same'))
     model.add(tf.keras.layers.Dropout(0.3))
     model.add(tf.keras.layers.MaxPool1D(pool_size=10))
-    model.add(tf.keras.layers.Conv1D(filters=512, kernel_size=8, strides=1, activation='relu', padding='same'))
+    model.add(tf.keras.layers.Conv1D(filters=32, kernel_size=8, strides=1, activation='relu', padding='same'))
     model.add(tf.keras.layers.Dropout(0.3))
     model.add(tf.keras.layers.MaxPool1D(pool_size=4))
-    model.add(tf.keras.layers.Conv1D(filters=512, kernel_size=5, strides=1, activation='relu', padding='same', ))
+    model.add(tf.keras.layers.Conv1D(filters=32, kernel_size=5, strides=1, activation='relu', padding='same', ))
     model.add(tf.keras.layers.Dropout(0.3))
     model.add(tf.keras.layers.AvgPool1D(pool_size=4))
-    model.add(tf.keras.layers.LSTM(256, return_sequences=True))
+    model.add(tf.keras.layers.LSTM(32, return_sequences=True))
     model.add(tf.keras.layers.Dropout(0.3))
-    model.add(tf.keras.layers.LSTM(256, return_sequences=True))
+    model.add(tf.keras.layers.LSTM(32, return_sequences=True))
     model.add(tf.keras.layers.Dropout(0.3))
     model.add(tf.keras.layers.Dense(2, activation='linear'))
     print(model.summary())

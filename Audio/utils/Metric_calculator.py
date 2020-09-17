@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 from Audio.Regression.Preprocessing.labels_utils_regression import transform_probabilities_to_original_sample_rate
+from Audio.utils.utils import CCC_2_sequences_numpy
 
 
 class Metric_calculator():
@@ -46,11 +47,14 @@ class Metric_calculator():
         :return: None
         """
         if mode=='regression':
-            cutted_predictions_flatten=self.cutted_predictions.flatten()[..., np.newaxis]
-            cutted_labels_timesteps_flatten=self.cutted_labels_timesteps.flatten()[..., np.newaxis]
-            dataframe_for_avg=pd.DataFrame(columns=['prediction','timestep'], data=np.concatenate((cutted_predictions_flatten, cutted_labels_timesteps_flatten), axis=1))
-            dataframe_for_avg=dataframe_for_avg.groupby(by=['timestep']).mean()
-            self.predictions=dataframe_for_avg['prediction'].values
+            cutted_predictions_flatten=self.cutted_predictions.reshape((-1, self.cutted_predictions.shape[-1]))
+            cutted_labels_timesteps_flatten=self.cutted_labels_timesteps.reshape((-1,1))
+            dataframe_for_avg=pd.DataFrame(data=np.concatenate((cutted_labels_timesteps_flatten, cutted_predictions_flatten), axis=1))
+            dataframe_for_avg=dataframe_for_avg.rename(columns={0:'timestep'})
+            dataframe_for_avg = dataframe_for_avg.groupby(by=['timestep']).mean()
+            dataframe_for_avg=dataframe_for_avg[dataframe_for_avg.index!=-1]
+            labels_regression=dataframe_for_avg.iloc[:].values
+            self.predictions=labels_regression
         elif 'categorical' in mode:
             cutted_predictions_flatten=self.cutted_predictions.reshape((-1, self.cutted_predictions.shape[-1]))
             cutted_labels_timesteps_flatten=self.cutted_labels_timesteps.reshape((-1,1))
@@ -121,6 +125,40 @@ class Metric_calculator():
         return 0.67 * f1_score(total_labels, total_predictions, average='macro') + 0.33 * accuracy_score(total_labels,total_predictions), \
                f1_score(total_labels, total_predictions, average='macro'), \
                accuracy_score(total_labels, total_predictions)
+
+    @staticmethod
+    def calculate_FG_2020_CCC_score_with_extended_predictions(instances, path_to_video, path_to_real_labels, original_sample_rate, delete_value=-5):
+
+        dict_filename_to_predictions = transform_probabilities_to_original_sample_rate(database_instances=instances,
+                                                                                       path_to_video=path_to_video,
+                                                                                       original_sample_rate=original_sample_rate,
+                                                                                       need_save=False,
+                                                                                       labels_type='regression')
+        real_filenames = os.listdir(path_to_real_labels)
+        total_predictions = pd.DataFrame()
+        total_labels = pd.DataFrame()
+        for real_labels_filename in real_filenames:
+            predictions_filename = real_labels_filename.split('.')[0] + '.csv'
+            predictions = dict_filename_to_predictions[predictions_filename]
+            if total_predictions.shape[0] == 0:
+                total_predictions = predictions
+            else:
+                total_predictions = total_predictions.append(predictions)
+
+            real_labels = pd.read_csv(path_to_real_labels + real_labels_filename, header=None)
+            if total_labels.shape[0] == 0:
+                total_labels = real_labels
+            else:
+                total_labels = total_labels.append(real_labels)
+
+        mask = (total_labels.values != delete_value).all(axis=-1)
+        total_labels = total_labels.values[mask]
+        total_predictions = total_predictions.values[mask]
+
+        result=np.zeros(shape=(total_labels.shape[-1],))
+        for i in range(total_labels.shape[-1]):
+            result[i]=CCC_2_sequences_numpy(total_labels[...,i], total_predictions[...,i])
+        return result
 
     def calculate_accuracy(self):
         return accuracy_score(self.ground_truth, self.predictions)

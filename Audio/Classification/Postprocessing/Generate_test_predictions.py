@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import tensorflow as tf
+import pandas as pd
 
 from Audio.Regression.Preprocessing.labels_utils_regression import transform_probabilities_to_original_sample_rate
 from Audio.utils.Database_instance import Database_instance
@@ -32,16 +33,16 @@ def generate_test_predictions_from_list(list_filenames, path_to_data, model, mod
     for filename in list_filenames:
         path_to_audio=path_to_data+filename.split('.')[0]+'_vocals.wav'
         tmp_dict=generate_test_predictions(path_to_audio,filename, model, model_output_sample_rate, path_to_video, window_size, window_step, prediction_mode)
-        tmp_dict[filename+'.csv'].to_csv(path_to_output+filename+'.csv', header=False, index=False)
+        tmp_dict[filename+'.csv'].to_csv(path_to_output+filename.split('.')[0]+'.csv', header=False, index=False)
 
 if __name__ == "__main__":
     path_to_filenames_labels='C:\\Users\\Dresvyanskiy\\Desktop\\expression_test_set.txt'
-    #filenames=pd.read_csv(path_to_filenames_labels, header=None)
-    filenames=np.array(os.listdir('D:\\Databases\\AffWild2\\Annotations\\EXPR_Set\\validation\\Aligned_labels_reduced\\sample_rate_5\\'))
+    filenames=pd.read_csv(path_to_filenames_labels, header=None).values
+    #filenames=np.array(os.listdir('D:\\Databases\\AffWild2\\Annotations\\EXPR_Set\\validation\\Aligned_labels_reduced\\sample_rate_5\\'))
     filenames=filenames.reshape((-1,))
     path_to_weights='C:\\Users\\Dresvyanskiy\\Downloads\\best_model_weights_1D_CNN.h5'
     path_to_data='D:\\Databases\\AffWild2\\Separated_audios\\'
-    path_to_output= '../../logs/predictions_val\\'
+    path_to_output= '../../logs/predictions_test\\'
     path_to_video='D:\\Databases\\AffWild2\\Videos\\'
     if not os.path.exists(path_to_output):
         os.mkdir(path_to_output)

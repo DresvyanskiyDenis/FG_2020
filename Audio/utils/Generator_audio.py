@@ -83,7 +83,7 @@ def extract_cutted_data_and_timesteps_from_given_indexes(dataframe_indexes, dict
         if start_idx_data==0 and end_idx_data>dict_instances[filename].data.shape[0]:
             result_data[i]=np.zeros(shape=(end_idx_data-start_idx_data,)+dict_instances[filename].data.shape[1:])
             result_data[i,:dict_instances[filename].data.shape[0]]=dict_instances[filename].data
-            result_timesteps[i]=np.zeros(shape=(end_idx_lbs-start_idx_lbs,)+dict_instances[filename].labels.shape[1:])
+            result_timesteps[i]=np.zeros(shape=(1,)+(end_idx_lbs-start_idx_lbs,))-1
             result_timesteps[i,:dict_instances[filename].labels.shape[0]]=dict_instances[filename].labels_timesteps
             return result_data, result_timesteps
         result_data[i] = dict_instances[filename].data[start_idx_data:end_idx_data]
@@ -161,7 +161,7 @@ def batch_generator_cut_data(instances, batch_size=32, need_shuffle=False, need_
         else:
             yield cutted_data, cutted_labels
 
-def predict_data_with_the_model(model, instances, prediction_mode='sequence_to_sequence'):
+def predict_data_with_the_model(model, instances, prediction_mode='sequence_to_sequence', labels_type='categorical'):
     data_window_size = instances[0].data_window_size
     labels_window_size=instances[0].labels_window_size
     # for access to instances via filename
@@ -198,7 +198,11 @@ def predict_data_with_the_model(model, instances, prediction_mode='sequence_to_s
         cut_timesteps=cut_timesteps.reshape((-1,1))
         metric_calculator = Metric_calculator(predictions, cut_timesteps,
                                               ground_truth=instance.labels)
-        metric_calculator.average_cutted_predictions_by_timestep(mode='categorical_labels')
-        metric_calculator.average_cutted_predictions_by_timestep(mode='categorical_probabilities')
-        instance.predictions = metric_calculator.predictions
-        instance.predictions_probabilities=metric_calculator.predictions_probabilities
+        if labels_type=='categorical':
+            metric_calculator.average_cutted_predictions_by_timestep(mode='categorical_labels')
+            metric_calculator.average_cutted_predictions_by_timestep(mode='categorical_probabilities')
+            instance.predictions = metric_calculator.predictions
+            instance.predictions_probabilities=metric_calculator.predictions_probabilities
+        elif labels_type=='regression':
+            metric_calculator.average_cutted_predictions_by_timestep(mode='regression')
+            instance.predictions = metric_calculator.predictions
