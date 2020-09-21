@@ -92,13 +92,13 @@ def train_model_on_data(path_to_data, path_to_labels_train, path_to_labels_valid
             print(train_result)
         # calculate metric on validation with extension of labels to original sample rate (videos frame rate)
 
-        # TODO: TEST IT
+
         predict_data_with_the_model(model, validation_database.data_instances, prediction_mode=prediction_mode, labels_type='regression')
 
         validation_result = Metric_calculator.calculate_FG_2020_CCC_score_with_extended_predictions(instances=validation_database.data_instances,
                                                                                path_to_video='D:\\Databases\\AffWild2\\Videos\\',
                                                                                path_to_real_labels='D:\\Databases\\AffWild2\\Annotations\\VA_Set\\validation\\Aligned_labels\\',
-                                                                               original_sample_rate=5,
+                                                                               original_sample_rate=10,
                                                                                delete_value=-5)
         print('Epoch %i is ended. Average loss:%f, valence:%f, arousal:%f' % (epoch, loss_sum / num_batch, validation_result[0], validation_result[1]))
         if validation_result.mean()>=best_result:

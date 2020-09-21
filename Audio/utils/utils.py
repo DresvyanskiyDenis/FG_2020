@@ -104,7 +104,7 @@ def plot_confusion_matrix(y_true, y_pred, classes,
 
 def load_labels(path_to_labels):
     f = open(path_to_labels, 'r')
-    original_sample_rate = int(f.readline().split(':')[-1])
+    original_sample_rate = float(f.readline().split(':')[-1])
     f.close()
     labels=pd.read_csv(path_to_labels, skiprows=1,header=None)
     return labels.values, original_sample_rate

@@ -253,6 +253,30 @@ def extend_sample_rate_labels_regarding_video_frame_rate(path_to_labels, path_to
         return labels
 
 
+def separate_arousal_and_valence_to_different_files(path_to_folder, output_dir):
+    filenames= os.listdir(path_to_folder)
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+    if not os.path.exists(output_dir+'valence\\'):
+        os.mkdir(output_dir+'valence\\')
+    if not os.path.exists(output_dir+'arousal\\'):
+        os.mkdir(output_dir+'arousal\\')
+    for filename in filenames:
+        arousal_valence=pd.read_csv(path_to_folder+filename, header=None)
+
+
+        valence=arousal_valence.iloc[:,0]
+        arousal = arousal_valence.iloc[:, 1]
+
+
+        valence.to_csv(output_dir+'valence\\'+filename, index=False, header=False, mode='a')
+
+
+        arousal.to_csv(output_dir+'arousal\\'+filename, index=False, header=False, mode='a')
+
+
+
+
 
 if __name__ == "__main__":
     path_to_video='D:\\Databases\\AffWild2\\Videos\\'
@@ -262,7 +286,9 @@ if __name__ == "__main__":
     downgraded_aligned_labels_outputh_path='D:\\Databases\\AffWild2\\Annotations\\VA_Set\\validation\\Aligned_labels_reduced\\'
     sample_rate_for_extension=3000
     sample_rate_for_downgrade=10
-    align_number_videoframes_and_labels_all_data(path_to_video=path_to_video,
+    separate_arousal_and_valence_to_different_files(path_to_folder='D:\\Databases\\AffWild2\\Annotations\\VA_Set\\validation\\Aligned_labels\\',
+                                                    output_dir='D:\\Databases\\AffWild2\\Annotations\\VA_Set\\validation\\Aligned_labels_separated\\')
+'''    align_number_videoframes_and_labels_all_data(path_to_video=path_to_video,
                                                  path_to_labels=path_to_original_labels,
                                                  output_path=aligned_labels_outputh_path)
 
@@ -273,4 +299,5 @@ if __name__ == "__main__":
 
     downgrade_sample_rate_of_all_labels(path_to_labels=extended_aligned_labels_outputh_path,
                                         path_to_output=downgraded_aligned_labels_outputh_path,
-                                        needed_sample_rate=sample_rate_for_downgrade)
+                                        needed_sample_rate=sample_rate_for_downgrade)'''
+
