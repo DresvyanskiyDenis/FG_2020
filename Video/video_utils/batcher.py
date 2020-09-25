@@ -6,12 +6,8 @@ from Audio.utils.utils import CCC_2_sequences_numpy
 
 mean=(91.4953, 103.8827, 131.0912)
 
-def frames_batch_generator(path_to_batches, batch_size, image_shape=(224,224,3), data_prefix='data_batch_num_', labels_prefix='labels_timesteps_batch_num_'):
+def frames_batch_generator(path_to_batches, batch_size, data_prefix='data_batch_num_', labels_prefix='labels_timesteps_batch_num_', labels_type=[]):
     batch_filenames=os.listdir(path_to_batches)
-    data_filenames=[value for value in batch_filenames if 'data' in value]
-    data_filenames=sorted(data_filenames)
-    labels_timesteps_filenames=[value for value in batch_filenames if 'labels' in value]
-    labels_timesteps_filenames = sorted(labels_timesteps_filenames)
     num_batches=int(len(batch_filenames)/2)
     tmp_data_window=np.load(path_to_batches+batch_filenames[0])
     window_size=tmp_data_window.shape[0]
@@ -29,7 +25,7 @@ def frames_batch_generator(path_to_batches, batch_size, image_shape=(224,224,3),
             batch_index+=1
         data=np.vstack(data_batches)
         data=data[...,::-1]-mean
-        labels=np.vstack(labels_timesteps_batches)[...,:2]
+        labels=pd.DataFrame(columns=['valence', 'arousal'], data=np.vstack(labels_timesteps_batches)[...,:2])[labels_type].values
         timesteps=np.vstack(labels_timesteps_batches)[...,-1]
         yield data, labels, timesteps
 
@@ -50,8 +46,9 @@ def calculate_model_performance_by_path_to_validation_batches(model, path_to_bat
         for i in range(len(label_type)):
             labels_timesteps[label_type[i]]=np.NaN
         predictions=model.predict(data, batch_size=1)
+        num_labels = len(labels_timesteps)
         for window_idx in range(num_windows):
-            labels_timesteps.iloc[window_idx*window_size:window_idx*window_size+window_size, -2:]=predictions[window_idx,:]
+            labels_timesteps.iloc[window_idx*window_size:window_idx*window_size+window_size, -num_labels:]=predictions[window_idx,:]
         labels_timesteps=labels_timesteps.groupby(by=['timestep']).mean()
         if ground_truth_predictions.shape[0]==0:
             ground_truth_predictions=labels_timesteps
