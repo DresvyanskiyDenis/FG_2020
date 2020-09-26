@@ -9,8 +9,8 @@ mean=(91.4953, 103.8827, 131.0912)
 def frames_batch_generator(path_to_batches, batch_size, data_prefix='data_batch_num_', labels_prefix='labels_timesteps_batch_num_', labels_type=[]):
     batch_filenames=os.listdir(path_to_batches)
     num_batches=int(len(batch_filenames)/2)
+    batches_idx_permutations=np.random.permutation(num_batches)
     tmp_data_window=np.load(path_to_batches+batch_filenames[0])
-    window_size=tmp_data_window.shape[0]
     batch_index=0
     for i in range(0, num_batches, batch_size):
         if i+batch_size>num_batches:
@@ -20,12 +20,18 @@ def frames_batch_generator(path_to_batches, batch_size, data_prefix='data_batch_
         data_batches=[]
         labels_timesteps_batches=[]
         for idx_batch in range(current_batch_size):
-            data_batches.append(np.load(path_to_batches + data_prefix + str(batch_index) + '.npy').astype('float32'))
-            labels_timesteps_batches.append(np.load(path_to_batches+ labels_prefix+str(batch_index)+'.npy').astype('float32'))
+            data_batches.append(np.load(path_to_batches + data_prefix + str(batches_idx_permutations[batch_index]) + '.npy').astype('float32'))
+            labels_timesteps_batches.append(np.load(path_to_batches+ labels_prefix+str(batches_idx_permutations[batch_index])+'.npy').astype('float32'))
             batch_index+=1
         data=np.vstack(data_batches)
         data=data[...,::-1]-mean
-        labels=pd.DataFrame(columns=['valence', 'arousal'], data=np.vstack(labels_timesteps_batches)[...,:2])[labels_type].values
+        if len(labels_type)==2:
+            labels=np.vstack(labels_timesteps_batches)[...,:2]
+        else:
+            if labels_type[0]=='valence':
+                labels = np.vstack(labels_timesteps_batches)[..., 0]
+            elif labels_type[0]=='arousal':
+                labels = np.vstack(labels_timesteps_batches)[..., 1]
         timesteps=np.vstack(labels_timesteps_batches)[...,-1]
         yield data, labels, timesteps
 
