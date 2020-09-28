@@ -36,7 +36,7 @@ def frames_batch_generator(path_to_batches, batch_size, data_prefix='data_batch_
         timesteps=np.vstack(labels_timesteps_batches)[...,-1]
         yield data, labels, timesteps
 
-def calculate_model_performance_by_path_to_validation_batches(model, path_to_batches, label_type=[]):
+def calculate_model_performance_by_path_to_validation_batches(model, path_to_batches, label_type=[], delete_value=-1):
     #TODO: change it, because you changed forming the validation batches
     filenames=os.listdir(path_to_batches)
     data_filenames=[value for value in filenames if 'data' in value]
@@ -65,6 +65,8 @@ def calculate_model_performance_by_path_to_validation_batches(model, path_to_bat
         del data, labels_timesteps
         gc.collect()
     results=[]
+    mask_to_delete=ground_truth_predictions.index!=delete_value
+    ground_truth_predictions=ground_truth_predictions[mask_to_delete]
     for i in range(len(label_type)):
         result=CCC_2_sequences_numpy(y_true=ground_truth_predictions[label_type[i].split('prediction_')[-1]].values,
                                      y_pred=ground_truth_predictions[label_type[i]].values)
