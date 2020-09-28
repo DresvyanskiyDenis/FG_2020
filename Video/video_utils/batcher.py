@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
+import gc
 
 from Audio.utils.utils import CCC_2_sequences_numpy
 
@@ -61,6 +62,8 @@ def calculate_model_performance_by_path_to_validation_batches(model, path_to_bat
             ground_truth_predictions=labels_timesteps
         else:
             ground_truth_predictions=ground_truth_predictions.append(labels_timesteps)
+        del data, labels_timesteps
+        gc.collect()
     results=[]
     for i in range(len(label_type)):
         result=CCC_2_sequences_numpy(y_true=ground_truth_predictions[label_type[i].split('prediction_')[-1]].values,
