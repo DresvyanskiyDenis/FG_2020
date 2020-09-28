@@ -36,6 +36,7 @@ def frames_batch_generator(path_to_batches, batch_size, data_prefix='data_batch_
         yield data, labels, timesteps
 
 def calculate_model_performance_by_path_to_validation_batches(model, path_to_batches, label_type=[]):
+    #TODO: change it, because you changed forming the validation batches
     filenames=os.listdir(path_to_batches)
     data_filenames=[value for value in filenames if 'data' in value]
     data_filenames=sorted(data_filenames)
@@ -52,7 +53,7 @@ def calculate_model_performance_by_path_to_validation_batches(model, path_to_bat
         for i in range(len(label_type)):
             labels_timesteps[label_type[i]]=np.NaN
         predictions=model.predict(data, batch_size=1)
-        num_labels = len(labels_timesteps)
+        num_labels = len(label_type)
         for window_idx in range(num_windows):
             labels_timesteps.iloc[window_idx*window_size:window_idx*window_size+window_size, -num_labels:]=predictions[window_idx,:]
         labels_timesteps=labels_timesteps.groupby(by=['timestep']).mean()

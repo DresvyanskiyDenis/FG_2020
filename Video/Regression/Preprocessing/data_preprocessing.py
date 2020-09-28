@@ -249,8 +249,14 @@ def generate_validation_batches(data_directory, path_to_labels, path_to_videos, 
                 img = img.resize(shapes_images)
                 x = np.array(img)
                 images[num_window, idx_window] = x
-        np.save(path_to_output + labels_filename.split('.')[0]+'_data.npy', images.astype(np.uint8))
-        meta_info_labels_timesteps_dataframe.to_csv(path_to_output + labels_filename.split('.')[0]+'_labels.csv', index=False)
+        num_batch=0
+        for batch_idx in range(0, images.shape[0], batch_size):
+            #TODO: check it one more time and also cutting on windows
+            data_to_save=images[batch_idx:(batch_idx+batch_size)]
+            labels_to_save=meta_info_labels_timesteps_dataframe.iloc[batch_idx*window_size:(batch_idx+batch_size)*window_size]
+            np.save(path_to_output + labels_filename.split('.')[0]+'_data_batch_%i.npy'%(num_batch), data_to_save.astype(np.uint8))
+            labels_to_save.to_csv(path_to_output + labels_filename.split('.')[0]+'_labels_batch_%i.csv'%(num_batch), index=False)
+            num_batch+=1
 
 
 def form_dataframe_from_labels_timesteps_metainfo(labels_timesteps_metainfo, filename):

@@ -20,7 +20,7 @@ def create_seq_to_seq_regression_model(input_shape, pretrained_model=None):
     model.add(tf.keras.layers.TimeDistributed(pretrained_model, input_shape=input_shape))
     model.add(tf.keras.layers.LSTM(256, return_sequences=True, kernel_regularizer=tf.keras.regularizers.l2(0.0001)))
     model.add(tf.keras.layers.LSTM(256, return_sequences=True, kernel_regularizer=tf.keras.regularizers.l2(0.0001)))
-    model.add(tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(2, activation='tanh')))
+    model.add(tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(1, activation='tanh')))
     optimizer=tf.keras.optimizers.Adam(lr=0.00025)
     loss=CCC_loss_tf
     model.compile(optimizer=optimizer, loss=loss)
