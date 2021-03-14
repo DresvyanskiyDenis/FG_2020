@@ -1,7 +1,25 @@
+# TODO: write description
+from typing import List, Tuple
+
 import numpy as np
 
+def extract_statistics_from_2d_window(window:np.ndarray, statistic_types:Tuple[str,...]=('mean', 'std')) -> np.ndarray:
+    # TODO: write description
+    supported_statistics=('mean', 'std')
+    if not set(statistic_types).issubset(supported_statistics):
+        raise AttributeError('Currently supported statistics:%s. Got %s.'%(supported_statistics, statistic_types))
+    if len(window.shape)!=2:
+        raise AttributeError('The window should be 2-dimensional. Got %i dimensions.'%(len(window.shape)))
 
-
+    result_statistics=[]
+    for statistic_type in statistic_types:
+        if statistic_type=='mean':
+            statistics=window.mean(axis=-1, keepdims=True)
+        elif statistic_type=='std':
+            statistics=window.std(axis=-1, keepdims=True)
+        result_statistics.append(statistics)
+    result_statistics=np.concatenate(result_statistics, axis=0)
+    return result_statistics
 
 
 def cut_data_on_chunks(data:np.ndarray, chunk_length:int, window_step:int) -> List[np.ndarray]:
