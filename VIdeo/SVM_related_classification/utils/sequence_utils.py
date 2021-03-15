@@ -14,11 +14,12 @@ def extract_statistics_from_2d_window(window:np.ndarray, statistic_types:Tuple[s
     result_statistics=[]
     for statistic_type in statistic_types:
         if statistic_type=='mean':
-            statistics=window.mean(axis=-1, keepdims=True)
+            statistics=window.mean(axis=0)
         elif statistic_type=='std':
-            statistics=window.std(axis=-1, keepdims=True)
+            statistics=window.std(axis=0)
         result_statistics.append(statistics)
     result_statistics=np.concatenate(result_statistics, axis=0)
+    result_statistics=result_statistics[..., np.newaxis]
     return result_statistics
 
 

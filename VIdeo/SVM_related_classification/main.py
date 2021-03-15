@@ -7,7 +7,7 @@ from scipy.stats import mode
 
 from VIdeo.SVM_related_classification.utils.normalization_utils import z_normalization, power_normalization, \
     l2_normalization
-from VIdeo.SVM_related_classification.utils.sequence_utils import cut_data_on_chunks
+from VIdeo.SVM_related_classification.utils.sequence_utils import cut_data_on_chunks, extract_statistics_from_2d_window
 
 Data_dict_type = Dict[str, Tuple[np.ndarray, int]]
 Labels_dict_type = Dict[str, pd.DataFrame]
@@ -66,26 +66,6 @@ def average_labels_within_window(labels:Labels_dict_type)->Labels_dict_type:
         labels_copy[key]=averaged_labels
     return labels_copy
 
-def normalize_data(data:Data_dict_type, normalization_types:Tuple[str,...]=('z','l2'),
-                   return_scalers:bool=False)->Data_dict_type:
-    for key, item in data.items():
-        values, sample_rate = item
-        # iterate through windows to apply normalization independently within window
-        for window_idx in range(values.shape[0]):
-            window=values[window_idx]
-            # apply all provided in normalization_types normalizations
-            for normalization_type in normalization_types:
-                if normalization_type=='z':
-                    window=z_normalization(window)
-                elif normalization_type=='power_norm':
-                    window=power_normalization(window)
-                elif normalization_type=='l2':
-                    window=l2_normalization(window)
-            values[window_idx]=window
-        data[key]=(values, sample_rate)
-    return data
-
-
 
 def delete_instances_with_class(data:Data_dict_type, labels:Labels_dict_type,
                                 class_to_delete:int)->Tuple[Data_dict_type, Labels_dict_type]:
@@ -97,6 +77,7 @@ def delete_instances_with_class(data:Data_dict_type, labels:Labels_dict_type,
         current_labels=current_labels[mask]
         data[key]=(values, sample_rate)
         labels[key]=current_labels
+    # TODO: add deleting filename instance if it has now no data et all.
     return data, labels
 
 
@@ -112,16 +93,29 @@ def concatenate_all_data_and_labels(data:Data_dict_type, labels:Labels_dict_type
     concatenated_labels = np.concatenate(concatenated_labels, axis=0)
     return concatenated_data, concatenated_labels
 
+def extract_statistics_from_windows(data:Data_dict_type)-> Data_dict_type:
+    for key, item in data.items():
+        values, sample_rate = item
+        functionals=[]
+        for window_idx in range(values.shape[0]):
+            window_functionals=extract_statistics_from_2d_window(values[window_idx])
+            functionals.append(window_functionals[np.newaxis,...])
+        try:
+            functionals=np.concatenate(functionals, axis=0)
+        except Exception:
+            a=1+2
+        data[key]=(functionals, sample_rate)
+    return data
 
 
 def main():
-    load_path_train_data = 'D:\\Downloads\\aff_wild2_val_emo_with_loss.pickle'
-    load_path_train_labels = 'D:\\Downloads\\df_affwild2_val_emo.csv'
-    load_path_val_data = 'D:\\Downloads\\aff_wild2_train_emo_with_loss.pickle'
-    load_path_val_labels = 'D:\\Downloads\\df_affwild2_train_emo.csv'
-    load_path_sample_rates = 'D:\\Downloads\\videos_frame_rate.txt'
-    window_size=4.
-    window_step=2.
+    load_path_train_data = 'C:\\Users\\Dresvyanskiy\\Downloads\\aff_wild2_train_emo_with_loss.pickle'
+    load_path_train_labels = 'C:\\Users\\Dresvyanskiy\\Downloads\\df_affwild2_train_emo.csv'
+    load_path_val_data = 'C:\\Users\\Dresvyanskiy\\Downloads\\aff_wild2_val_emo_with_loss.pickle'
+    load_path_val_labels = 'C:\\Users\\Dresvyanskiy\\Downloads\\df_affwild2_val_emo.csv'
+    load_path_sample_rates = 'C:\\Users\\Dresvyanskiy\\Downloads\\videos_frame_rate.txt'
+    window_size=2.
+    window_step=1.
     # load data, labels and sample rates
     sample_rates = load_sample_rates(load_path_sample_rates)
     train_data=np.load(load_path_train_data, allow_pickle=True)
@@ -141,14 +135,13 @@ def main():
     # cut data on sequences
     train_data, train_labels = cut_all_data_and_labels_on_chunks(train_data, train_labels,window_size, window_step)
     train_labels_averaged=average_labels_within_window(train_labels)
-    train_data=normalize_data(train_data)
 
     #val_data, val_labels = cut_all_data_and_labels_on_chunks(val_data, val_labels,window_size, window_step)
     #val_data=normalize_data(val_data)
 
     # delete instances with -1 label
     train_data, train_labels_averaged=delete_instances_with_class(train_data, train_labels_averaged, -1)
-
+    train_data = extract_statistics_from_windows(train_data)
     # concatenate train data to train SVM
     train_data, train_labels_averaged = concatenate_all_data_and_labels(train_data, train_labels_averaged)
     # clear RAM
