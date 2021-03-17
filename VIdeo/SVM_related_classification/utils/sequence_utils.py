@@ -1,11 +1,20 @@
 # TODO: write description
 from typing import List, Tuple
-
 import numpy as np
 
 def extract_statistics_from_2d_window(window:np.ndarray, statistic_types:Tuple[str,...]=('mean', 'std')) -> np.ndarray:
-    # TODO: write description
+    """Extracts from 2d window functionals for each feature across instances (rows).
+    Currently supported functionals: ('mean', 'std')
+
+    :param window: np.ndarray
+                data in 2-d format (n_samples, n_features)
+    :param statistic_types: Tuple[str,...]
+                required functionals to extract.
+    :return: np.ndarray
+                extracted functionals with shape (n_samples, n_functionals)
+    """
     supported_statistics=('mean', 'std')
+    # check if statistic_types contains only supported functional types
     if not set(statistic_types).issubset(supported_statistics):
         raise AttributeError('Currently supported statistics:%s. Got %s.'%(supported_statistics, statistic_types))
     if len(window.shape)!=2:
