@@ -1,8 +1,20 @@
 # TODO: write description
 from typing import List, Tuple
 import numpy as np
+from numpy.polynomial import polynomial
 
-def extract_statistics_from_2d_window(window:np.ndarray, statistic_types:Tuple[str,...]=('mean', 'std')) -> np.ndarray:
+def extract_polynomial_coefficients_from_2d_window(window:np.ndarray, order:int):
+    coefficients=[]
+    x=np.linspace(0,1,window.shape[0])
+    for feature_idx in range(window.shape[1]):
+        y=window[:,feature_idx]
+        coeffs=polynomial.polyfit(x, y, deg=order)[order]
+        coefficients.append(coeffs)
+    coefficients=np.array(coefficients)
+    return coefficients
+
+def extract_statistics_from_2d_window(window:np.ndarray,
+                                      statistic_types:Tuple[str,...]=('mean', 'std', 'poly_1d','poly_2d')) -> np.ndarray:
     """Extracts from 2d window functionals for each feature across instances (rows).
     Currently supported functionals: ('mean', 'std')
 
@@ -13,7 +25,7 @@ def extract_statistics_from_2d_window(window:np.ndarray, statistic_types:Tuple[s
     :return: np.ndarray
                 extracted functionals with shape (n_samples, n_functionals)
     """
-    supported_statistics=('mean', 'std')
+    supported_statistics=('mean', 'std', 'poly_1d','poly_2d')
     # check if statistic_types contains only supported functional types
     if not set(statistic_types).issubset(supported_statistics):
         raise AttributeError('Currently supported statistics:%s. Got %s.'%(supported_statistics, statistic_types))
@@ -26,6 +38,10 @@ def extract_statistics_from_2d_window(window:np.ndarray, statistic_types:Tuple[s
             statistics=window.mean(axis=0)
         elif statistic_type=='std':
             statistics=window.std(axis=0)
+        elif statistic_type=='poly_1d':
+            statistics=extract_polynomial_coefficients_from_2d_window(window, order=1)
+        elif statistic_type=='poly_2d':
+            statistics=extract_polynomial_coefficients_from_2d_window(window, order=2)
         result_statistics.append(statistics)
     result_statistics=np.concatenate(result_statistics, axis=0)
     result_statistics=result_statistics[..., np.newaxis]
