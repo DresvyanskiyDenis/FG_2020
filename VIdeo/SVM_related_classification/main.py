@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import mode
 from sklearn.manifold import TSNE
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 from sklearn.preprocessing import Normalizer
 from sklearn.svm import LinearSVC
 import matplotlib.pyplot as plt
@@ -437,7 +437,8 @@ def prepare_data_and_labels_for_svm(data: Data_dict_type, labels: Labels_dict_ty
 
 def validate_estimator_on_dict(estimator: object, val_data: Data_dict_type, sample_rates: Dict[str, int],
                                original_labels: Labels_dict_type,
-                               window_size: float, window_step: float) -> float:
+                               window_size: float, window_step: float,
+                               return_confusion_matrix:bool=False) -> Union[float, Tuple[float, np.ndarray]]:
     """Validates provided estimator (classfier) on val_data in format Dict[str, Tuple[np.ndarray, int]]
     Uses recover_labels_in_dict() function to transform features with shape (num_windows, 1) to frame format with
     shape (num_frames,), where num_frames - the number of frames of related video file.
@@ -454,8 +455,12 @@ def validate_estimator_on_dict(estimator: object, val_data: Data_dict_type, samp
             the size of window, on which labels were cut, in seconds.
     :param window_step: float
             the step of window, on which labels were cut, in seconds.
-    :return: float
+    :param return_confusion_matrix: bool
+            if True, returns confusion matrix
+    :return: float or (float, np.ndarray)
             the estimator's UAR (unweighted average recall)
+            or
+            the estimator's UAR (unweighted average recall) and confusion matrix with shape (n_classes, n_classes)
     """
     # generate predictions
     predictions = dict()
@@ -468,7 +473,7 @@ def validate_estimator_on_dict(estimator: object, val_data: Data_dict_type, samp
     predictions = recover_labels_in_dict(predictions=predictions, sample_rates=sample_rates,
                                          original_labels=original_labels, window_size=window_size,
                                          window_step=window_step)
-    # concatenate predictions to one sequene
+    # concatenate predictions to one sequence
     concat_predictions = []
     concat_ground_truth_labels = []
     for key, item in predictions.items():
@@ -480,8 +485,13 @@ def validate_estimator_on_dict(estimator: object, val_data: Data_dict_type, samp
     mask = concat_ground_truth_labels != -1
     concat_predictions = concat_predictions[mask]
     concat_ground_truth_labels = concat_ground_truth_labels[mask]
-    return 0.33 * accuracy_score(concat_ground_truth_labels, concat_predictions) \
+    metric = 0.33 * accuracy_score(concat_ground_truth_labels, concat_predictions) \
            + 0.67 * f1_score(concat_ground_truth_labels, concat_predictions, average='macro')
+    if return_confusion_matrix:
+        conf_matrix=confusion_matrix(concat_ground_truth_labels, concat_predictions)
+        visualize_and_save_confusion_matrix(conf_matrix, path='conf_matrix_C_%s'%estimator.C)
+        return metric, conf_matrix
+    return metric
 
 
 def save_features_to_file(path:str, features:Data_dict_type, labels:Labels_dict_type_numpy):
@@ -546,6 +556,97 @@ def visualize_features_according_class(features:np.array, labels:np.array):
     plt.legend()
     plt.show()
 
+def visualize_and_save_confusion_matrix(confusion_matrix:np.ndarray, path:str,
+                                        visualize:bool=True,
+                                        label_names=('Neutral','Anger','Disgust','Fear',
+                                                     'Happiness','Sadness','Surprise'))->None:
+    if not os.path.exists(path):
+        os.mkdir(path)
+    plot_confusion_matrix(cm=confusion_matrix, target_names=label_names, normalize=False, visualize=False, path=path)
+
+def plot_confusion_matrix(cm,
+                          target_names,
+                          title='Confusion matrix',
+                          cmap=None,
+                          normalize=True,
+                          visualize:bool=True,
+                          path:str='confusion_matrix'):
+    """
+    given a sklearn confusion matrix (cm), make a nice plot
+
+    Arguments
+    ---------
+    cm:           confusion matrix from sklearn.metrics.confusion_matrix
+
+    target_names: given classification classes such as [0, 1, 2]
+                  the class names, for example: ['high', 'medium', 'low']
+
+    title:        the text to display at the top of the matrix
+
+    cmap:         the gradient of the values displayed from matplotlib.pyplot.cm
+                  see http://matplotlib.org/examples/color/colormaps_reference.html
+                  plt.get_cmap('jet') or plt.cm.Blues
+
+    normalize:    If False, plot the raw numbers
+                  If True, plot the proportions
+
+    Usage
+    -----
+    plot_confusion_matrix(cm           = cm,                  # confusion matrix created by
+                                                              # sklearn.metrics.confusion_matrix
+                          normalize    = True,                # show proportions
+                          target_names = y_labels_vals,       # list of names of the classes
+                          title        = best_estimator_name) # title of graph
+
+    Citiation
+    ---------
+    http://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html
+
+    """
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import itertools
+
+    accuracy = np.trace(cm) / float(np.sum(cm))
+    misclass = 1 - accuracy
+
+    if cmap is None:
+        cmap = plt.get_cmap('Blues')
+
+    plt.figure(figsize=(8, 6))
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+
+    if target_names is not None:
+        tick_marks = np.arange(len(target_names))
+        plt.xticks(tick_marks, target_names, rotation=45)
+        plt.yticks(tick_marks, target_names)
+
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+
+
+    thresh = cm.max() / 1.5 if normalize else cm.max() / 2
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        if normalize:
+            plt.text(j, i, "{:0.4f}".format(cm[i, j]),
+                     horizontalalignment="center",
+                     color="white" if cm[i, j] > thresh else "black")
+        else:
+            plt.text(j, i, "{:,}".format(cm[i, j]),
+                     horizontalalignment="center",
+                     color="white" if cm[i, j] > thresh else "black")
+
+
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label\naccuracy={:0.4f}; misclass={:0.4f}'.format(accuracy, misclass))
+    if visualize:
+        plt.show()
+    plt.savefig(os.path.join(path, 'confusion_matrix.png'))
+
+
 def main(window_size:float=4, window_step:float=2, normalization_types:Tuple[str,...] = ('z', 'l2')):
     load_path_train_data = 'D:\\Downloads\\aff_wild2_train_emo_with_loss.pickle'
     load_path_train_labels = 'D:\\Downloads\\df_affwild2_train_emo.csv'
@@ -586,20 +687,20 @@ def main(window_size:float=4, window_step:float=2, normalization_types:Tuple[str
                                                                                  prepared_train_labels)
     # prepare labels to fit it in SVC
     prepared_train_labels = prepared_train_labels.reshape((-1,))
-    for C in [0.001, 0.01, 0.1, 1, 10, 100]:
+    for C in [0.1]:
         linearSVM = LinearSVC(C=C, class_weight='balanced')
         linearSVM = linearSVM.fit(prepared_train_data, prepared_train_labels)
         # validation with recovering the number of frames of each video
-        score = validate_estimator_on_dict(estimator=linearSVM, val_data=val_data, sample_rates=sample_rates,
+        score,_ = validate_estimator_on_dict(estimator=linearSVM, val_data=val_data, sample_rates=sample_rates,
                                            original_labels=val_labels,
-                                           window_size=window_size, window_step=window_step)
+                                           window_size=window_size, window_step=window_step, return_confusion_matrix=True)
         print('C:', C, 'score:', score)
 
 
 if __name__ == '__main__':
-    """main(4,2, normalization_types=('z','l2'))
+    main(4,2, normalization_types=('z','l2'))
     print("################################")
-    main(4,2, normalization_types=('z','power','l2'))
+    """main(4,2, normalization_types=('z','power','l2'))
     print("################################")
     main(2,1, normalization_types=('z','l2'))
     print("################################")
@@ -607,7 +708,7 @@ if __name__ == '__main__':
     print("################################")"""
 
 
-    path_to_save_features='saved_features'
+    """path_to_save_features='saved_features'
     load_path_train_data = 'D:\\Downloads\\aff_wild2_train_emo_with_loss.pickle'
     load_path_train_labels = 'D:\\Downloads\\df_affwild2_train_emo.csv'
     load_path_val_data = 'D:\\Downloads\\aff_wild2_val_emo_with_loss.pickle'
@@ -662,4 +763,4 @@ if __name__ == '__main__':
 
     prepared_val_data, prepared_val_labels = concatenate_all_data_and_labels(val_data,
                                                                                  _)
-    visualize_features_according_class(prepared_val_data, prepared_val_labels)
+    visualize_features_according_class(prepared_val_data, prepared_val_labels)"""
