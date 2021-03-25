@@ -10,6 +10,7 @@ from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 from sklearn.preprocessing import Normalizer
 from sklearn.svm import LinearSVC
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 from VIdeo.SVM_related_classification.utils.normalization_utils import z_normalization, power_normalization
 from VIdeo.SVM_related_classification.utils.sequence_utils import cut_data_on_chunks, extract_statistics_from_2d_window
@@ -438,7 +439,7 @@ def prepare_data_and_labels_for_svm(data: Data_dict_type, labels: Labels_dict_ty
 def validate_estimator_on_dict(estimator: object, val_data: Data_dict_type, sample_rates: Dict[str, int],
                                original_labels: Labels_dict_type,
                                window_size: float, window_step: float,
-                               return_confusion_matrix:bool=False) -> Union[float, Tuple[float, np.ndarray]]:
+                               plot_and_save_conf_matrix:bool=False) -> Union[float, Tuple[float, np.ndarray]]:
     """Validates provided estimator (classfier) on val_data in format Dict[str, Tuple[np.ndarray, int]]
     Uses recover_labels_in_dict() function to transform features with shape (num_windows, 1) to frame format with
     shape (num_frames,), where num_frames - the number of frames of related video file.
@@ -455,8 +456,8 @@ def validate_estimator_on_dict(estimator: object, val_data: Data_dict_type, samp
             the size of window, on which labels were cut, in seconds.
     :param window_step: float
             the step of window, on which labels were cut, in seconds.
-    :param return_confusion_matrix: bool
-            if True, returns confusion matrix
+    :param plot_and_save_conf_matrix: bool
+            if True, plots and saves confusion matrix
     :return: float or (float, np.ndarray)
             the estimator's UAR (unweighted average recall)
             or
@@ -487,10 +488,11 @@ def validate_estimator_on_dict(estimator: object, val_data: Data_dict_type, samp
     concat_ground_truth_labels = concat_ground_truth_labels[mask]
     metric = 0.33 * accuracy_score(concat_ground_truth_labels, concat_predictions) \
            + 0.67 * f1_score(concat_ground_truth_labels, concat_predictions, average='macro')
-    if return_confusion_matrix:
-        conf_matrix=confusion_matrix(concat_ground_truth_labels, concat_predictions)
-        visualize_and_save_confusion_matrix(conf_matrix, path='conf_matrix_C_%s'%estimator.C)
-        return metric, conf_matrix
+    if plot_and_save_conf_matrix:
+        plot_and_save_confusion_matrix(concat_ground_truth_labels,concat_predictions,
+                                       name_labels=['Neutral','Anger','Disgust','Fear',
+                                                    'Happiness','Sadness','Surprise'],
+                                       path_to_save='conf_matrix_C_%s'%estimator.C)
     return metric
 
 
@@ -519,6 +521,30 @@ def save_features_to_file(path:str, features:Data_dict_type, labels:Labels_dict_
         columns=['window_idx']+['feature_%i'%i for i in range(values.shape[-1])]+['label']
         df_to_save.columns=columns
         df_to_save.to_csv(os.path.join(path, filename.split('.')[0]+'.csv'), index=False)
+
+def save_recovered_predictions_to_dir(path_to_save:str,estimator: object,
+                                      val_data: Data_dict_type, sample_rates: Dict[str, int],
+                               original_labels: Labels_dict_type,
+                               window_size: float, window_step: float) -> None:
+    # TODO: make description
+    # generate predictions
+    predictions = dict()
+    for key, item in val_data.items():
+        values, sample_rate = item
+        num_windows = values.shape[0]
+        values = values.reshape((-1, values.shape[-1]))
+        predictions[key] = estimator.decision_function(values)
+    # recover frames
+    predictions = recover_labels_in_dict(predictions=predictions, sample_rates=sample_rates,
+                                         original_labels=original_labels, window_size=window_size,
+                                         window_step=window_step)
+    # check if directory exists
+    if not os.path.exists(path_to_save):
+        os.mkdir(path_to_save)
+    # save predictions
+    for key, item in predictions:
+        pd.DataFrame(data=item, columns=['class']).to_csv(os.path.join(path_to_save, key), index=False)
+
 
 
 def visualize_features_according_class(features:np.array, labels:np.array):
@@ -556,103 +582,42 @@ def visualize_features_according_class(features:np.array, labels:np.array):
     plt.legend()
     plt.show()
 
-def visualize_and_save_confusion_matrix(confusion_matrix:np.ndarray, path:str,
-                                        visualize:bool=True,
-                                        label_names=('Neutral','Anger','Disgust','Fear',
-                                                     'Happiness','Sadness','Surprise'))->None:
-    if not os.path.exists(path):
-        os.mkdir(path)
-    plot_confusion_matrix(cm=confusion_matrix, target_names=label_names, normalize=False, visualize=False, path=path)
 
-def plot_confusion_matrix(cm,
-                          target_names,
-                          title='Confusion matrix',
-                          cmap=None,
-                          normalize=True,
-                          visualize:bool=True,
-                          path:str='confusion_matrix'):
-    """
-    given a sklearn confusion matrix (cm), make a nice plot
+def plot_and_save_confusion_matrix(y_true, y_pred, name_labels, path_to_save:str='confusion_matrix', name_filename:str='cm.png'):
+    c_m = confusion_matrix(y_true, y_pred)
+    conf_matrix = pd.DataFrame(c_m, name_labels, name_labels)
 
-    Arguments
-    ---------
-    cm:           confusion matrix from sklearn.metrics.confusion_matrix
+    plt.figure(figsize=(9, 9))
 
-    target_names: given classification classes such as [0, 1, 2]
-                  the class names, for example: ['high', 'medium', 'low']
+    group_counts = ['{0:0.0f}'.format(value) for value in
+                    conf_matrix.values.flatten()]
+    group_percentages = ['{0:.2%}'.format(value) for value in
+                         conf_matrix.div(np.sum(conf_matrix, axis=1), axis=0).values.flatten()]
 
-    title:        the text to display at the top of the matrix
+    labels = ['{}\n{}'.format(v1, v2) for v1, v2 in zip(group_counts, group_percentages)]
 
-    cmap:         the gradient of the values displayed from matplotlib.pyplot.cm
-                  see http://matplotlib.org/examples/color/colormaps_reference.html
-                  plt.get_cmap('jet') or plt.cm.Blues
+    labels = np.asarray(labels).reshape(c_m.shape)
 
-    normalize:    If False, plot the raw numbers
-                  If True, plot the proportions
-
-    Usage
-    -----
-    plot_confusion_matrix(cm           = cm,                  # confusion matrix created by
-                                                              # sklearn.metrics.confusion_matrix
-                          normalize    = True,                # show proportions
-                          target_names = y_labels_vals,       # list of names of the classes
-                          title        = best_estimator_name) # title of graph
-
-    Citiation
-    ---------
-    http://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html
-
-    """
-    import matplotlib.pyplot as plt
-    import numpy as np
-    import itertools
-
-    accuracy = np.trace(cm) / float(np.sum(cm))
-    misclass = 1 - accuracy
-
-    if cmap is None:
-        cmap = plt.get_cmap('Blues')
-
-    plt.figure(figsize=(8, 6))
-    plt.imshow(cm, interpolation='nearest', cmap=cmap)
-    plt.title(title)
-    plt.colorbar()
-
-    if target_names is not None:
-        tick_marks = np.arange(len(target_names))
-        plt.xticks(tick_marks, target_names, rotation=45)
-        plt.yticks(tick_marks, target_names)
-
-    if normalize:
-        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-
-
-    thresh = cm.max() / 1.5 if normalize else cm.max() / 2
-    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        if normalize:
-            plt.text(j, i, "{:0.4f}".format(cm[i, j]),
-                     horizontalalignment="center",
-                     color="white" if cm[i, j] > thresh else "black")
-        else:
-            plt.text(j, i, "{:,}".format(cm[i, j]),
-                     horizontalalignment="center",
-                     color="white" if cm[i, j] > thresh else "black")
-
-
-    plt.tight_layout()
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label\naccuracy={:0.4f}; misclass={:0.4f}'.format(accuracy, misclass))
-    if visualize:
-        plt.show()
-    plt.savefig(os.path.join(path, 'confusion_matrix.png'))
+    chart = sns.heatmap(conf_matrix,
+                        cbar=False,
+                        annot=labels,
+                        square=True,
+                        fmt='',
+                        annot_kws={'size': 14},
+                        cmap="Blues"
+                        )
+    if not os.path.exists(path_to_save):
+        os.mkdir(path_to_save)
+    plt.savefig(os.path.join(path_to_save,name_filename), bbox_inches='tight', pad_inches=0)
 
 
 def main(window_size:float=4, window_step:float=2, normalization_types:Tuple[str,...] = ('z', 'l2')):
-    load_path_train_data = 'D:\\Downloads\\aff_wild2_train_emo_with_loss.pickle'
-    load_path_train_labels = 'D:\\Downloads\\df_affwild2_train_emo.csv'
-    load_path_val_data = 'D:\\Downloads\\aff_wild2_val_emo_with_loss.pickle'
-    load_path_val_labels = 'D:\\Downloads\\df_affwild2_val_emo.csv'
-    load_path_sample_rates = 'D:\\Downloads\\videos_frame_rate.txt'
+    load_path_train_data = 'C:\\Users\\Dresvyanskiy\\Downloads\\aff_wild2_train_emo_with_loss.pickle'
+    load_path_train_labels = 'C:\\Users\\Dresvyanskiy\\Downloads\\df_affwild2_train_emo.csv'
+    load_path_val_data = 'C:\\Users\\Dresvyanskiy\\Downloads\\aff_wild2_val_emo_with_loss.pickle'
+    load_path_val_labels = 'C:\\Users\\Dresvyanskiy\\Downloads\\df_affwild2_val_emo.csv'
+    load_path_sample_rates = 'C:\\Users\\Dresvyanskiy\\Downloads\\videos_frame_rate.txt'
+    path_to_save_predictions='predictions'
     # load data, labels and sample rates
     sample_rates = load_sample_rates(load_path_sample_rates)
     train_data = np.load(load_path_train_data, allow_pickle=True)
@@ -691,10 +656,13 @@ def main(window_size:float=4, window_step:float=2, normalization_types:Tuple[str
         linearSVM = LinearSVC(C=C, class_weight='balanced')
         linearSVM = linearSVM.fit(prepared_train_data, prepared_train_labels)
         # validation with recovering the number of frames of each video
-        score,_ = validate_estimator_on_dict(estimator=linearSVM, val_data=val_data, sample_rates=sample_rates,
+        score = validate_estimator_on_dict(estimator=linearSVM, val_data=val_data, sample_rates=sample_rates,
                                            original_labels=val_labels,
-                                           window_size=window_size, window_step=window_step, return_confusion_matrix=True)
+                                           window_size=window_size, window_step=window_step, plot_and_save_conf_matrix=True)
         print('C:', C, 'score:', score)
+        save_recovered_predictions_to_dir(path_to_save='val_predictions_linearSVM', estimator=linearSVM, val_data=val_data,
+                                          sample_rates=sample_rates, original_labels=val_labels,
+                                          window_size=window_size, window_step=window_step)
 
 
 if __name__ == '__main__':
