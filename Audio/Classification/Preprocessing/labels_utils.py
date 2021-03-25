@@ -50,6 +50,8 @@ def extend_sample_rate_of_labels(labels, original_sample_rate, needed_sample_rat
     # converting labels in ndarray if it is DataFrame
     if isinstance(labels, pd.DataFrame):
         labels=labels.values.reshape((-1,))
+    if len(labels.shape)==2:
+        labels=labels.reshape((-1,))
     # calculate ration between original and needed sample rates
     ratio=needed_sample_rate/original_sample_rate
     new_size_of_labels=int(math.ceil(labels.shape[0]*ratio))

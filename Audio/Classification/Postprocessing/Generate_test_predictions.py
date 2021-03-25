@@ -36,14 +36,13 @@ def generate_test_predictions_from_list(list_filenames, path_to_data, model, mod
         tmp_dict[filename+'.csv'].to_csv(path_to_output+filename.split('.')[0]+'.csv', header=False, index=False)
 
 if __name__ == "__main__":
-    path_to_filenames_labels='C:\\Users\\Dresvyanskiy\\Desktop\\expression_test_set.txt'
-    filenames=pd.read_csv(path_to_filenames_labels, header=None).values
+    path_to_filenames_labels='C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\1D_CNN\\devel\\'
     #filenames=np.array(os.listdir('D:\\Databases\\AffWild2\\Annotations\\EXPR_Set\\validation\\Aligned_labels_reduced\\sample_rate_5\\'))
-    filenames=filenames.reshape((-1,))
-    path_to_weights='C:\\Users\\Dresvyanskiy\\Downloads\\best_model_weights_1D_CNN.h5'
-    path_to_data='D:\\Databases\\AffWild2\\Separated_audios\\'
-    path_to_output= '../../logs/predictions_test\\'
-    path_to_video='D:\\Databases\\AffWild2\\Videos\\'
+    filenames=np.array(os.listdir(path_to_filenames_labels))
+    path_to_weights='D:\Downloads\\best_model_weights(1).h5'
+    path_to_data='E:\\Databases\\AffWild2\\Separated_audios\\'
+    path_to_output= 'predictions_test\\'
+    path_to_video='E:\\Databases\\AffWild2\\Videos\\'
     if not os.path.exists(path_to_output):
         os.mkdir(path_to_output)
     window_size=4

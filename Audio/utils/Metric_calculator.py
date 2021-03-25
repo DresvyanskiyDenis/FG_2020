@@ -86,7 +86,7 @@ class Metric_calculator():
         ground_truth_all=np.zeros((0,))
         predictions_all=np.zeros((0,))
         for instance in instances:
-            ground_truth_all=np.concatenate((ground_truth_all, instance.labels))
+            ground_truth_all=np.concatenate((ground_truth_all, instance.labels.reshape((-1,))))
             predictions_all = np.concatenate((predictions_all, instance.predictions))
         mask=ground_truth_all!=delete_value
         ground_truth_all=ground_truth_all[mask]
