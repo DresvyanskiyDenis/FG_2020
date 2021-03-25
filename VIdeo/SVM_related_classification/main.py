@@ -17,7 +17,7 @@ from VIdeo.SVM_related_classification.utils.sequence_utils import cut_data_on_ch
 
 Data_dict_type = Dict[str, Tuple[np.ndarray, int]]
 Labels_dict_type = Dict[str, pd.DataFrame]
-Labels_dict_type_numpy=Dict[str, np.ndarray]
+Labels_dict_type_numpy = Dict[str, np.ndarray]
 
 
 def load_sample_rates(path: str) -> Dict[str, int]:
@@ -235,7 +235,7 @@ def extract_statistics_from_windows(data: Data_dict_type) -> Data_dict_type:
             functionals.append(window_functionals[np.newaxis, ...])
         functionals = np.concatenate(functionals, axis=0)
         # squeeze last dimension
-        if functionals.shape[-1]==1:
+        if functionals.shape[-1] == 1:
             functionals = functionals.reshape(functionals.shape[:-1])
         data[key] = (functionals, sample_rate)
     return data
@@ -439,7 +439,7 @@ def prepare_data_and_labels_for_svm(data: Data_dict_type, labels: Labels_dict_ty
 def validate_estimator_on_dict(estimator: object, val_data: Data_dict_type, sample_rates: Dict[str, int],
                                original_labels: Labels_dict_type,
                                window_size: float, window_step: float,
-                               plot_and_save_conf_matrix:bool=False) -> Union[float, Tuple[float, np.ndarray]]:
+                               plot_and_save_conf_matrix: bool = False) -> Union[float, Tuple[float, np.ndarray]]:
     """Validates provided estimator (classfier) on val_data in format Dict[str, Tuple[np.ndarray, int]]
     Uses recover_labels_in_dict() function to transform features with shape (num_windows, 1) to frame format with
     shape (num_frames,), where num_frames - the number of frames of related video file.
@@ -487,16 +487,43 @@ def validate_estimator_on_dict(estimator: object, val_data: Data_dict_type, samp
     concat_predictions = concat_predictions[mask]
     concat_ground_truth_labels = concat_ground_truth_labels[mask]
     metric = 0.33 * accuracy_score(concat_ground_truth_labels, concat_predictions) \
-           + 0.67 * f1_score(concat_ground_truth_labels, concat_predictions, average='macro')
+             + 0.67 * f1_score(concat_ground_truth_labels, concat_predictions, average='macro')
     if plot_and_save_conf_matrix:
-        plot_and_save_confusion_matrix(concat_ground_truth_labels,concat_predictions,
-                                       name_labels=['Neutral','Anger','Disgust','Fear',
-                                                    'Happiness','Sadness','Surprise'],
-                                       path_to_save='conf_matrix_C_%s'%estimator.C)
+        plot_and_save_confusion_matrix(concat_ground_truth_labels, concat_predictions,
+                                       name_labels=['Neutral', 'Anger', 'Disgust', 'Fear',
+                                                    'Happiness', 'Sadness', 'Surprise'],
+                                       path_to_save='conf_matrix_C_%s' % estimator.C)
     return metric
 
 
-def save_features_to_file(path:str, features:Data_dict_type, labels:Labels_dict_type_numpy):
+def change_class_order_from_AffectNet_to_AffWild2(values: np.ndarray) -> np.ndarray:
+    #                              0       1          2           3          4         5         6
+    # AffectNet class ordering: Neutral, Happiness, Sadness, Surprised,     Fear,    Disgust, Anger
+    # AffWIld2 class ordering : Neutral, Anger,    Disgust,     Fear,    Happiness, Sadness, Surprised
+    # so, we need mapping from AffectNet class ordering to AffWild2
+    # 0 -> 0
+    # 1 -> 6
+    # 2 -> 5
+    # 3 -> 4
+    # 4 -> 1
+    # 5 -> 2
+    # 6 -> 3
+    mapping_dict = {
+        -1:-1,
+        0: 0,
+        1: 4,
+        2: 5,
+        3: 6,
+        4: 3,
+        5: 2,
+        6: 1
+    }
+
+    map_values = np.vectorize(mapping_dict.get)(values)
+    return map_values
+
+
+def save_features_to_file(path: str, features: Data_dict_type, labels: Labels_dict_type_numpy):
     """Saves provided in Dict[str, Tuple[np.ndarray, int]] features with labels in format Dict[str, np.ndarray].
     The provided data and labels will be separated according to filenames (keys of dictionary).
     The saved files will be in .csv format with following columns:
@@ -511,21 +538,23 @@ def save_features_to_file(path:str, features:Data_dict_type, labels:Labels_dict_
     :return: None
     """
     for key, item in features.items():
-        filename=key
-        values, sample_rate=item
-        window_labels=labels[filename].reshape((-1,1))
-        concatenated_data=np.concatenate([ np.array([i for i in range(values.shape[0])])[..., np.newaxis], # window_idx
-                                            values,                             # features
-                                           window_labels], axis=-1)                      # labels
-        df_to_save=pd.DataFrame(data=concatenated_data)
-        columns=['window_idx']+['feature_%i'%i for i in range(values.shape[-1])]+['label']
-        df_to_save.columns=columns
-        df_to_save.to_csv(os.path.join(path, filename.split('.')[0]+'.csv'), index=False)
+        filename = key
+        values, sample_rate = item
+        window_labels = labels[filename].reshape((-1, 1))
+        concatenated_data = np.concatenate(
+            [np.array([i for i in range(values.shape[0])])[..., np.newaxis],  # window_idx
+             values,  # features
+             window_labels], axis=-1)  # labels
+        df_to_save = pd.DataFrame(data=concatenated_data)
+        columns = ['window_idx'] + ['feature_%i' % i for i in range(values.shape[-1])] + ['label']
+        df_to_save.columns = columns
+        df_to_save.to_csv(os.path.join(path, filename.split('.')[0] + '.csv'), index=False)
 
-def save_recovered_predictions_to_dir(path_to_save:str,estimator: object,
+
+def save_recovered_predictions_to_dir(path_to_save: str, estimator: object,
                                       val_data: Data_dict_type, sample_rates: Dict[str, int],
-                               original_labels: Labels_dict_type,
-                               window_size: float, window_step: float) -> None:
+                                      original_labels: Labels_dict_type,
+                                      window_size: float, window_step: float) -> None:
     # TODO: make description
     # generate predictions
     predictions = dict()
@@ -542,12 +571,11 @@ def save_recovered_predictions_to_dir(path_to_save:str,estimator: object,
     if not os.path.exists(path_to_save):
         os.mkdir(path_to_save)
     # save predictions
-    for key, item in predictions:
-        pd.DataFrame(data=item, columns=['class']).to_csv(os.path.join(path_to_save, key), index=False)
+    for key, item in predictions.items():
+        pd.DataFrame(data=item, columns=['class']).to_csv(os.path.join(path_to_save, key + '.csv'), index=False)
 
 
-
-def visualize_features_according_class(features:np.array, labels:np.array):
+def visualize_features_according_class(features: np.array, labels: np.array):
     """visualised n-dimensional data with the help of t-SNE algorithm.
     The implementation is taken from sklearn.
     https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html
@@ -560,20 +588,20 @@ def visualize_features_according_class(features:np.array, labels:np.array):
     :return: None
     """
     # check if labels and features formats are correct
-    if len(features.shape)!=2:
-        raise AttributeError('Provided features must be 2-dimensional. Got %i.'%len(features.shape))
-    if len(labels.shape)>2:
-        raise AttributeError('Provided labels must be 2- or 1-dimensional. Got %i.'%len(labels.shape))
+    if len(features.shape) != 2:
+        raise AttributeError('Provided features must be 2-dimensional. Got %i.' % len(features.shape))
+    if len(labels.shape) > 2:
+        raise AttributeError('Provided labels must be 2- or 1-dimensional. Got %i.' % len(labels.shape))
     # reshape labels if they are 2-dimensional
-    if len(labels.shape)==2:
-        labels=labels.reshape((-1,))
+    if len(labels.shape) == 2:
+        labels = labels.reshape((-1,))
     # transform data via TSNE
-    tsne=TSNE(n_components=2)
-    features=tsne.fit_transform(features)
+    tsne = TSNE(n_components=2)
+    features = tsne.fit_transform(features)
     # create support variables to create graph
-    num_classes=np.unique(labels).shape[0]
-    colors=[i for i in range(num_classes)]
-    class_names=['Neutral','Anger','Disgust','Fear','Happiness','Sadness','Surprise']
+    num_classes = np.unique(labels).shape[0]
+    colors = [i for i in range(num_classes)]
+    class_names = ['Neutral', 'Anger', 'Disgust', 'Fear', 'Happiness', 'Sadness', 'Surprise']
     # creating graph
     plt.figure(figsize=(10, 8))
     colors = ['r', 'g', 'b', 'c', 'm', 'y', 'k']
@@ -583,7 +611,8 @@ def visualize_features_according_class(features:np.array, labels:np.array):
     plt.show()
 
 
-def plot_and_save_confusion_matrix(y_true, y_pred, name_labels, path_to_save:str='confusion_matrix', name_filename:str='cm.png'):
+def plot_and_save_confusion_matrix(y_true, y_pred, name_labels, path_to_save: str = 'confusion_matrix',
+                                   name_filename: str = 'cm.png'):
     c_m = confusion_matrix(y_true, y_pred)
     conf_matrix = pd.DataFrame(c_m, name_labels, name_labels)
 
@@ -608,21 +637,22 @@ def plot_and_save_confusion_matrix(y_true, y_pred, name_labels, path_to_save:str
                         )
     if not os.path.exists(path_to_save):
         os.mkdir(path_to_save)
-    plt.savefig(os.path.join(path_to_save,name_filename), bbox_inches='tight', pad_inches=0)
+    plt.savefig(os.path.join(path_to_save, name_filename), bbox_inches='tight', pad_inches=0)
 
 
-def main(window_size:float=4, window_step:float=2, normalization_types:Tuple[str,...] = ('z', 'l2')):
-    load_path_train_data = 'C:\\Users\\Dresvyanskiy\\Downloads\\aff_wild2_train_emo_with_loss.pickle'
-    load_path_train_labels = 'C:\\Users\\Dresvyanskiy\\Downloads\\df_affwild2_train_emo.csv'
-    load_path_val_data = 'C:\\Users\\Dresvyanskiy\\Downloads\\aff_wild2_val_emo_with_loss.pickle'
-    load_path_val_labels = 'C:\\Users\\Dresvyanskiy\\Downloads\\df_affwild2_val_emo.csv'
-    load_path_sample_rates = 'C:\\Users\\Dresvyanskiy\\Downloads\\videos_frame_rate.txt'
-    path_to_save_predictions='predictions'
+def main(window_size: float = 4, window_step: float = 2, normalization_types: Tuple[str, ...] = ('z', 'l2')):
+    load_path_train_data = 'D:\\Downloads\\aff_wild2_train_emo_with_loss.pickle'
+    load_path_train_labels = 'D:\\Downloads\\df_affwild2_train_emo.csv'
+    load_path_val_data = 'D:\\Downloads\\aff_wild2_val_emo_with_loss.pickle'
+    load_path_val_labels = 'D:\\Downloads\\df_affwild2_val_emo.csv'
+    load_path_sample_rates = 'D:\\Downloads\\videos_frame_rate.txt'
+    path_to_save_predictions = 'val_predictions_linearSVM'
     # load data, labels and sample rates
     sample_rates = load_sample_rates(load_path_sample_rates)
     train_data = np.load(load_path_train_data, allow_pickle=True)
     train_labels = pd.read_csv(load_path_train_labels)
-
+    # change the class ordering to AffWild2
+    train_labels.iloc[:, 2] = change_class_order_from_AffectNet_to_AffWild2(train_labels.iloc[:, 2])
     # make first column to be str type (some instances incorrectly defined as int or float values)
     train_labels['name_folder'] = train_labels['name_folder'].astype('str')
     # transform it to convenient format (in dict[filename->data])
@@ -638,6 +668,8 @@ def main(window_size:float=4, window_step:float=2, normalization_types:Tuple[str
     # load val data
     val_data = np.load(load_path_val_data, allow_pickle=True)
     val_labels = pd.read_csv(load_path_val_labels)
+    # change the class ordering to AffWild2
+    val_labels.iloc[:, 2] = change_class_order_from_AffectNet_to_AffWild2(val_labels.iloc[:, 2])
     val_labels['name_folder'] = val_labels['name_folder'].astype('str')
     val_data, val_labels = transform_data_and_labels_to_dict(val_data, val_labels, sample_rates)
     val_data, _ = prepare_data_and_labels_for_svm(
@@ -652,21 +684,22 @@ def main(window_size:float=4, window_step:float=2, normalization_types:Tuple[str
                                                                                  prepared_train_labels)
     # prepare labels to fit it in SVC
     prepared_train_labels = prepared_train_labels.reshape((-1,))
-    for C in [0.1]:
+    for C in [0.01]:
         linearSVM = LinearSVC(C=C, class_weight='balanced')
         linearSVM = linearSVM.fit(prepared_train_data, prepared_train_labels)
         # validation with recovering the number of frames of each video
         score = validate_estimator_on_dict(estimator=linearSVM, val_data=val_data, sample_rates=sample_rates,
                                            original_labels=val_labels,
-                                           window_size=window_size, window_step=window_step, plot_and_save_conf_matrix=True)
+                                           window_size=window_size, window_step=window_step,
+                                           plot_and_save_conf_matrix=True)
         print('C:', C, 'score:', score)
-        save_recovered_predictions_to_dir(path_to_save='val_predictions_linearSVM', estimator=linearSVM, val_data=val_data,
+        save_recovered_predictions_to_dir(path_to_save=path_to_save_predictions, estimator=linearSVM, val_data=val_data,
                                           sample_rates=sample_rates, original_labels=val_labels,
                                           window_size=window_size, window_step=window_step)
 
 
 if __name__ == '__main__':
-    main(4,2, normalization_types=('z','l2'))
+    main(4, 2, normalization_types=('z', 'power','l2'))
     print("################################")
     """main(4,2, normalization_types=('z','power','l2'))
     print("################################")
@@ -674,7 +707,6 @@ if __name__ == '__main__':
     print("################################")
     main(2,1, normalization_types=('z','power','l2'))
     print("################################")"""
-
 
     """path_to_save_features='saved_features'
     load_path_train_data = 'D:\\Downloads\\aff_wild2_train_emo_with_loss.pickle'
