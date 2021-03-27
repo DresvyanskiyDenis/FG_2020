@@ -3,7 +3,9 @@ import os
 import cv2
 import pandas as pd
 import numpy as np
+import scipy
 from sklearn.metrics import f1_score, accuracy_score
+from scipy.special import softmax
 
 from Audio.Regression.Preprocessing.labels_utils_regression import construct_video_filename_from_label, \
     get_video_frame_rate, extend_sample_rate_of_labels
@@ -34,53 +36,62 @@ def align_sample_rate_to_video_rate(predictions, path_to_video, filename, origin
 
 
 def main():
-    path_to_elena_predictions='C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\Pretrained_AffectNet_model_3\\'
-    path_to_heysem_predictions='C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\Pretrained_AffectNet_model_4\\'
-    #path_to_pann_predictions='C:\\Users\\Dresvyanskiy\\Desktop\\Projects\\FG_2020\\Audio\\logs\\Maxim\\'
-    path_to_denis_predictions='C:\\Users\\Denis\\PycharmProjects\\FG_2020\Predictions\\1D_CNN\\'
-    path_to_ground_truth='E:\\Databases\\AffWild2\\Annotations\\EXPR_Set\\validation\\Aligned_labels\\'
-    path_to_video='E:\\Databases\\AffWild2\\Videos\\'
+    path_to_model_3_predictions = 'C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\Pretrained_AffectNet_model_3\\devel'
+    path_to_model_4_predictions = 'C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\Pretrained_AffectNet_model_4\\devel'
+    path_to_1D_CNN_predictions = 'C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\1D_CNN\\devel'
+    path_to_PANN_predictions = 'C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\PANN\\devel'
+    path_to_linearSVM_predictions = 'C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\linearSVM_2_1_z_l2_C_0_01\\'
+    path_to_ground_truth_predictions = 'E:\\Databases\\AffWild2\\Annotations\\EXPR_Set\\validation\\Aligned_labels\\'
+    path_to_videos = 'E:\\Databases\\AffWild2\\Videos\\'
+    num_classes = 7
 
-    labels_filenames=os.listdir(path_to_denis_predictions+'devel\\')
-    #path_to_filenames_labels='C:\\Users\\Dresvyanskiy\\Desktop\\expression_test_set.txt'
-    #labels_filenames=pd.read_csv(path_to_filenames_labels, header=None).values.reshape((-1))
-    elena_predictions=pd.DataFrame()
-    #pann_predictions=pd.DataFrame()
-    denis_predictions=pd.DataFrame()
-    heysem_predictions=pd.DataFrame
-    ground_truth=pd.DataFrame()
+    # load all filenames with predictions
+    labels_filenames = os.listdir(path_to_model_3_predictions)
+    # create variables to load predictions
+    model_3_predictions = []
+    model_4_predictions = []
+    model_1D_predictions = []
+    model_PANN_predictions = []
+    model_linearSVM_predictions = []
+    ground_truth_predictions = []
     for lbs_filename in labels_filenames:
-        filename=lbs_filename.split('.')[0]
-        gt=pd.read_csv(path_to_ground_truth+filename+'.txt', header=None)
+        filename = lbs_filename.split('.')[0]
+        ground_truth_pred = pd.read_csv(os.path.join(path_to_ground_truth_predictions, filename + '.txt'), header=None)
 
-        el=pd.read_csv(path_to_elena_predictions+'devel\\'+filename+'.txt')
-        el=pd.DataFrame(data=el.iloc[:,1:].values)
+        model_3_pred = pd.read_csv(os.path.join(path_to_model_3_predictions, filename + '.txt'))
+        model_3_pred = pd.DataFrame(data=model_3_pred.iloc[:, 1:].values)
 
-        #pann=pd.read_csv(path_to_pann_predictions+'predictions_val\\'+filename+'.csv', header=None)
-        #pann=align_sample_rate_to_video_rate(pann, path_to_video, filename, 5)
-        #pann.to_csv('C:\\Users\\Dresvyanskiy\\Desktop\\Projects\\FG_2020\\Audio\\logs\\Maxim\\predictions_test\\'+filename+'.csv', index=False, header=False)
+        model_4_pred = pd.read_csv(os.path.join(path_to_model_4_predictions, filename + '.txt'))
+        model_4_pred = pd.DataFrame(data=model_4_pred.iloc[:, 1:].values)
 
-        de=pd.read_csv(path_to_denis_predictions+'devel\\'+filename+'.csv', header=None)
-        de = align_sample_rate_to_video_rate(de, path_to_video, filename, 5)
+        model_PANN_pred = pd.read_csv(os.path.join(path_to_PANN_predictions, filename + '.csv'), header=None)
+        model_PANN_pred = align_sample_rate_to_video_rate(model_PANN_pred, path_to_videos, filename, 5)
 
-        he=pd.read_csv(path_to_heysem_predictions+'devel\\'+filename+'.txt')
-        he = pd.DataFrame(data=he.iloc[:, 1:].values)
-        #he=align_sample_rate_to_video_rate(he, path_to_video, filename, 5)
+        model_1D_pred = pd.read_csv(os.path.join(path_to_1D_CNN_predictions, filename + '.csv'), header=None)
+        model_1D_pred = align_sample_rate_to_video_rate(model_1D_pred, path_to_videos, filename, 5)
 
-        if denis_predictions.shape[0]==0:
-            #pann_predictions=pann
-            elena_predictions=el
-            denis_predictions=de
-            ground_truth=gt
-            heysem_predictions=he
-        else:
-            #pann_predictions=pann_predictions.append(pann)
-            elena_predictions=elena_predictions.append(el)
-            denis_predictions=denis_predictions.append(de)
-            ground_truth=ground_truth.append(gt)
-            heysem_predictions=heysem_predictions.append(he)
+        model_linearSVM_pred = pd.read_csv(os.path.join(path_to_linearSVM_predictions, filename + '.csv'))
+        #model_linearSVM_pred = align_sample_rate_to_video_rate(model_linearSVM_pred, path_to_videos, filename, 5)
+        model_linearSVM_pred.iloc[:]=softmax(model_linearSVM_pred.iloc[:], axis=1)
+        model_linearSVM_pred = pd.DataFrame(data=model_linearSVM_pred.values)
 
-    predictions=[elena_predictions, denis_predictions, heysem_predictions]
+
+        # append to the lists created above for former concatenation
+        model_3_predictions.append(model_3_pred)
+        model_4_predictions.append(model_4_pred)
+        model_PANN_predictions.append(model_PANN_pred)
+        model_1D_predictions.append(model_1D_pred)
+        model_linearSVM_predictions.append(model_linearSVM_pred)
+        ground_truth_predictions.append(ground_truth_pred)
+    # concatenate all loaded predictions
+    model_3_predictions = pd.concat(model_3_predictions)
+    model_4_predictions = pd.concat(model_4_predictions)
+    model_PANN_predictions = pd.concat(model_PANN_predictions)
+    model_1D_predictions = pd.concat(model_1D_predictions)
+    model_linearSVM_predictions = pd.concat(model_linearSVM_predictions)
+    ground_truth_predictions = pd.concat(ground_truth_predictions)
+
+    predictions=[model_3_predictions, model_4_predictions,model_1D_predictions, model_linearSVM_predictions]
     num_predictions=len(predictions)
     num_weights=10000
     num_classes=7
@@ -95,9 +106,11 @@ def main():
         for i in range(1, num_predictions):
             final_prediction+=predictions[i]*weights[weight_idx,:,i]
         final_prediction=np.argmax(final_prediction.values, axis=-1)
-        delete_mask=ground_truth.values!=-1
+        delete_mask=ground_truth_predictions.values!=-1
 
-        metric=0.67 * f1_score(final_prediction.reshape((-1,1))[delete_mask], ground_truth.values[delete_mask], average='macro') + 0.33 * accuracy_score(final_prediction.reshape((-1,1))[delete_mask],ground_truth.values[delete_mask])
+        metric=0.67 * f1_score(final_prediction.reshape((-1,1))[delete_mask], ground_truth_predictions.values[delete_mask], average='macro') + \
+               0.33 * accuracy_score(final_prediction.reshape((-1,1))[delete_mask],ground_truth_predictions.values[delete_mask])
+        #print('current metric:', metric)
         if metric>best:
             best=metric
             best_weights=weights[weight_idx]
@@ -110,15 +123,15 @@ def main():
     path_to_save='C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\predictions_for_submission\\'
     if not os.path.exists(path_to_save):
         os.mkdir(path_to_save)
-    folder_to_save='Elena_AffectNet_3_4_and_1DCNN\\'
+    folder_to_save='Elena_AffectNet_3_4_and_1DCNN_LinearSVM\\'
     if not os.path.exists(path_to_save+folder_to_save):
         os.mkdir(path_to_save+folder_to_save)
     np.savetxt(path_to_save+folder_to_save+'weights_for_fusion.txt', best_weights)
-    folder_to_save_predictions='test_predictions\\'
+    '''folder_to_save_predictions='test_predictions\\'
     if not os.path.exists(path_to_save+folder_to_save+folder_to_save_predictions):
-        os.mkdir(path_to_save+folder_to_save+folder_to_save_predictions)
+        os.mkdir(path_to_save+folder_to_save+folder_to_save_predictions)'''
 
-    columns_for_test='Neutral,Anger,Disgust,Fear,Happiness,Sadness,Surprise\n'
+    '''columns_for_test='Neutral,Anger,Disgust,Fear,Happiness,Sadness,Surprise\n'
     #path_to_filenames_test_labels='C:\\Users\\Dresvyanskiy\\Desktop\\expression_test_set.txt'
     #labels_filenames=pd.read_csv(path_to_filenames_test_labels, header=None).values.reshape((-1))
     labels_filenames=os.listdir('C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\1D_CNN\\test\\')
@@ -149,7 +162,7 @@ def main():
         file.write(columns_for_test)
         file.close()
         pd.DataFrame(data=final_test_prediction).to_csv(path_to_save+folder_to_save+folder_to_save_predictions+filename+'.txt', header=False, index=False, mode='a')
-
+    '''
 
 
 
