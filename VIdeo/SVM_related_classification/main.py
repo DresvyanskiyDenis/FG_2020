@@ -284,8 +284,8 @@ def recover_frame_labels_from_window_labels(labels: np.ndarray, original_labels:
     # check if recovered labels have the same length as original
     if grouping_DataFrame.shape[0] != original_labels.shape[0]:
         raise Exception('The shape of recovered labels does not equal to the original length.')
-    # assign recovered labels to labels. Argmax need to take max from sores of each class
-    instance = grouping_DataFrame.values.argmax(axis=-1)
+    # assign recovered labels to labels.
+    instance = grouping_DataFrame.values
     return instance
 
 
@@ -486,10 +486,10 @@ def validate_estimator_on_dict(estimator: object, val_data: Data_dict_type, samp
     mask = concat_ground_truth_labels != -1
     concat_predictions = concat_predictions[mask]
     concat_ground_truth_labels = concat_ground_truth_labels[mask]
-    metric = 0.33 * accuracy_score(concat_ground_truth_labels, concat_predictions) \
-             + 0.67 * f1_score(concat_ground_truth_labels, concat_predictions, average='macro')
+    metric = 0.33 * accuracy_score(concat_ground_truth_labels, concat_predictions.argmax(axis=-1)) \
+             + 0.67 * f1_score(concat_ground_truth_labels, concat_predictions.argmax(axis=-1), average='macro')
     if plot_and_save_conf_matrix:
-        plot_and_save_confusion_matrix(concat_ground_truth_labels, concat_predictions,
+        plot_and_save_confusion_matrix(concat_ground_truth_labels, concat_predictions.argmax(axis=-1),
                                        name_labels=['Neutral', 'Anger', 'Disgust', 'Fear',
                                                     'Happiness', 'Sadness', 'Surprise'],
                                        path_to_save='conf_matrix_C_%s' % estimator.C)
@@ -571,8 +571,10 @@ def save_recovered_predictions_to_dir(path_to_save: str, estimator: object,
     if not os.path.exists(path_to_save):
         os.mkdir(path_to_save)
     # save predictions
+    num_classes=7
     for key, item in predictions.items():
-        pd.DataFrame(data=item, columns=['class']).to_csv(os.path.join(path_to_save, key + '.csv'), index=False)
+        pd.DataFrame(data=item, columns=['class_%i_prob'%i for i in range(num_classes)]).to_csv(
+            os.path.join(path_to_save, key + '.csv'), index=False)
 
 
 def visualize_features_according_class(features: np.array, labels: np.array):
@@ -699,7 +701,7 @@ def main(window_size: float = 4, window_step: float = 2, normalization_types: Tu
 
 
 if __name__ == '__main__':
-    main(4, 2, normalization_types=('z', 'power','l2'))
+    main(4, 2, normalization_types=('z','power','l2'))
     print("################################")
     """main(4,2, normalization_types=('z','power','l2'))
     print("################################")
