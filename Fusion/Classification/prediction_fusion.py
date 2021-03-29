@@ -108,8 +108,8 @@ def main():
         final_prediction=np.argmax(final_prediction.values, axis=-1)
         delete_mask=ground_truth_predictions.values!=-1
 
-        metric=0.67 * f1_score(final_prediction.reshape((-1,1))[delete_mask], ground_truth_predictions.values[delete_mask], average='macro') + \
-               0.33 * accuracy_score(final_prediction.reshape((-1,1))[delete_mask],ground_truth_predictions.values[delete_mask])
+        metric=0.67 * f1_score(ground_truth_predictions.values[delete_mask], final_prediction.reshape((-1, 1))[delete_mask], average='macro') + \
+               0.33 * accuracy_score(ground_truth_predictions.values[delete_mask], final_prediction.reshape((-1, 1))[delete_mask])
         #print('current metric:', metric)
         if metric>best:
             best=metric
