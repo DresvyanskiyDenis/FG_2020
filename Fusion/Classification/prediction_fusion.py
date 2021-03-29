@@ -40,7 +40,7 @@ def main():
     path_to_model_4_predictions = 'C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\Pretrained_AffectNet_model_4\\devel'
     path_to_1D_CNN_predictions = 'C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\1D_CNN\\devel'
     path_to_PANN_predictions = 'C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\PANN\\devel'
-    path_to_linearSVM_predictions = 'C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\linearSVM_2_1_z_l2_C_0_01\\'
+    path_to_linearSVM_predictions = 'C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\linearSVM_4_2_z_l2_C_0_1\\'
     path_to_ground_truth_predictions = 'E:\\Databases\\AffWild2\\Annotations\\EXPR_Set\\validation\\Aligned_labels\\'
     path_to_videos = 'E:\\Databases\\AffWild2\\Videos\\'
     num_classes = 7

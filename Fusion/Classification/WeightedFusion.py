@@ -47,7 +47,7 @@ def main():
     path_to_ground_truth_predictions='E:\\Databases\\AffWild2\\Annotations\\EXPR_Set\\validation\\Aligned_labels\\'
     path_to_videos='E:\\Databases\\AffWild2\\Videos\\'
     path_to_fusion_weights='C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\predictions_for_submission\\' \
-                           'Elena_AffectNet_3_4_and_1DCNN\\weights_for_fusion.txt'
+                           'Elena_AffectNet_3_4_and_1DCNN_submission_9\\weights_for_fusion.txt'
     num_classes = 7
 
     # load all filenames with predictions
@@ -117,12 +117,11 @@ def main():
                                                     'Happiness','Sadness','Surprise'],
                                    path_to_save = 'confusion_matrix', name_filename = 'confusion_matrix_model_3_4_and_1D_CNN.png')
     # calculate the metric with deleted -1 labels
-    metric = 0.67 * f1_score(final_prediction, ground_truth_predictions.values[delete_mask],
-                             average='macro') + 0.33 * accuracy_score(final_prediction,
-                                                                      ground_truth_predictions.values[delete_mask])
+    metric = 0.67 * f1_score(ground_truth_predictions.values[delete_mask], final_prediction,
+                             average='macro') + 0.33 * accuracy_score(ground_truth_predictions.values[delete_mask], final_prediction)
     print('final metric:', metric)
-    print('F1-score:',f1_score(final_prediction, ground_truth_predictions.values[delete_mask], average='macro'))
-    print('accuracy:', accuracy_score(final_prediction, ground_truth_predictions.values[delete_mask]))
+    print('F1-score:',f1_score(ground_truth_predictions.values[delete_mask], final_prediction, average='macro'))
+    print('accuracy:', accuracy_score(ground_truth_predictions.values[delete_mask], final_prediction))
 
 
 if __name__=='__main__':
