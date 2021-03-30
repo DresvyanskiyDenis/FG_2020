@@ -8,7 +8,7 @@ from scipy.stats import mode
 from sklearn.manifold import TSNE
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 from sklearn.preprocessing import Normalizer
-from sklearn.svm import LinearSVC
+from sklearn.svm import LinearSVC, SVC
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -642,17 +642,25 @@ def plot_and_save_confusion_matrix(y_true, y_pred, name_labels, path_to_save: st
     plt.savefig(os.path.join(path_to_save, name_filename), bbox_inches='tight', pad_inches=0)
 
 
-def main(window_size: float = 4, window_step: float = 2, normalization_types: Tuple[str, ...] = ('z', 'l2')):
+def main(C_params:List[float], window_size: float = 4, window_step: float = 2, normalization_types: Tuple[str, ...] = ('z', 'l2'),
+         generate_test_predictions:bool=False, path_to_save_test_predictions:str='predictions'):
     load_path_train_data = 'D:\\Downloads\\aff_wild2_train_emo_with_loss.pickle'
     load_path_train_labels = 'D:\\Downloads\\df_affwild2_train_emo.csv'
     load_path_val_data = 'D:\\Downloads\\aff_wild2_val_emo_with_loss.pickle'
     load_path_val_labels = 'D:\\Downloads\\df_affwild2_val_emo.csv'
+    load_path_test_data = 'D:\\Downloads\\aff_wild2_test_emo_with_loss.pickle'
+    load_path_test_labels = 'D:\\Downloads\\df_affwild2_test_emo.csv'
     load_path_sample_rates = 'D:\\Downloads\\videos_frame_rate.txt'
     path_to_save_predictions = 'val_predictions_linearSVM'
     # load data, labels and sample rates
     sample_rates = load_sample_rates(load_path_sample_rates)
     train_data = np.load(load_path_train_data, allow_pickle=True)
     train_labels = pd.read_csv(load_path_train_labels)
+    # concatenate train and val to train system on it and make test predictions
+    val_data = np.load(load_path_val_data, allow_pickle=True)
+    val_labels=pd.read_csv(load_path_val_labels)
+    train_data=np.concatenate([train_data, val_data], axis=0)
+    train_labels=pd.concat([train_labels, val_labels], axis=0)
     # change the class ordering to AffWild2
     train_labels.iloc[:, 2] = change_class_order_from_AffectNet_to_AffWild2(train_labels.iloc[:, 2])
     # make first column to be str type (some instances incorrectly defined as int or float values)
@@ -667,7 +675,7 @@ def main(window_size: float = 4, window_step: float = 2, normalization_types: Tu
     # clear RAM
     gc.collect()
     # all the same operations for validation data
-    # load val data
+    """# load val data
     val_data = np.load(load_path_val_data, allow_pickle=True)
     val_labels = pd.read_csv(load_path_val_labels)
     # change the class ordering to AffWild2
@@ -677,7 +685,7 @@ def main(window_size: float = 4, window_step: float = 2, normalization_types: Tu
     val_data, _ = prepare_data_and_labels_for_svm(
         data=val_data, labels=val_labels.copy(), window_size=window_size, window_step=window_step,
         normalization=True, normalization_types=normalization_types, return_normalizers=False,
-        normalizers=train_normalizers, class_to_delete=None)
+        normalizers=train_normalizers, class_to_delete=None)"""
 
     # clear RAM
     gc.collect()
@@ -686,22 +694,45 @@ def main(window_size: float = 4, window_step: float = 2, normalization_types: Tu
                                                                                  prepared_train_labels)
     # prepare labels to fit it in SVC
     prepared_train_labels = prepared_train_labels.reshape((-1,))
-    for C in [0.01]:
+    for C in C_params:
         linearSVM = LinearSVC(C=C, class_weight='balanced')
         linearSVM = linearSVM.fit(prepared_train_data, prepared_train_labels)
         # validation with recovering the number of frames of each video
-        score = validate_estimator_on_dict(estimator=linearSVM, val_data=val_data, sample_rates=sample_rates,
+        """score = validate_estimator_on_dict(estimator=linearSVM, val_data=val_data, sample_rates=sample_rates,
                                            original_labels=val_labels,
                                            window_size=window_size, window_step=window_step,
                                            plot_and_save_conf_matrix=True)
-        print('C:', C, 'score:', score)
-        save_recovered_predictions_to_dir(path_to_save=path_to_save_predictions, estimator=linearSVM, val_data=val_data,
-                                          sample_rates=sample_rates, original_labels=val_labels,
-                                          window_size=window_size, window_step=window_step)
+        print('C:', C, 'score:', score)"""
+        #save_recovered_predictions_to_dir(path_to_save=path_to_save_predictions, estimator=linearSVM, val_data=val_data,
+        #                                  sample_rates=sample_rates, original_labels=val_labels,
+        #                                  window_size=window_size, window_step=window_step)
+        if generate_test_predictions:
+            del train_data
+            del val_data
+            del prepared_train_data
+            #del val_data
+            gc.collect()
+            # load val data
+            test_data = np.load(load_path_test_data, allow_pickle=True)
+            test_labels = pd.read_csv(load_path_test_labels)
+            test_labels['name_folder'] = test_labels['name_folder'].astype('str')
+            test_data, test_labels = transform_data_and_labels_to_dict(test_data, test_labels, sample_rates)
+            test_data, _ = prepare_data_and_labels_for_svm(
+                data=test_data, labels=test_labels.copy(), window_size=window_size, window_step=window_step,
+                normalization=True, normalization_types=normalization_types, return_normalizers=False,
+                normalizers=train_normalizers, class_to_delete=None)
+            # save recovered test predictions
+            save_recovered_predictions_to_dir(path_to_save=path_to_save_test_predictions, estimator=linearSVM,
+                                              val_data=test_data,
+                                              sample_rates=sample_rates, original_labels=test_labels,
+                                              window_size=window_size, window_step=window_step)
 
 
 if __name__ == '__main__':
-    main(4, 2, normalization_types=('z','power','l2'))
+    main([0.1], 4, 2, normalization_types=('z','l2'), generate_test_predictions=True,
+         path_to_save_test_predictions='Linear_SVM_4_2_z_l2')
+    main([0.01], 4, 2, normalization_types=('z','power','l2'), generate_test_predictions=True,
+         path_to_save_test_predictions='Linear_SVM_4_2_z_power_l2')
     print("################################")
     """main(4,2, normalization_types=('z','power','l2'))
     print("################################")
