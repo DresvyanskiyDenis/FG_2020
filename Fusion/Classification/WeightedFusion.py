@@ -61,7 +61,7 @@ def main():
     ground_truth_predictions = []
     for lbs_filename in labels_filenames:
         filename = lbs_filename.split('.')[0]
-        ground_truth_pred = pd.read_csv(os.path.join(path_to_ground_truth_predictions, filename + '.txt'), header=None)
+        #ground_truth_pred = pd.read_csv(os.path.join(path_to_ground_truth_predictions, filename + '.txt'), header=None)
 
         model_3_pred = pd.read_csv(os.path.join(path_to_model_3_predictions, filename + '.txt'))
         model_3_pred = pd.DataFrame(data=model_3_pred.iloc[:, 1:].values)
@@ -86,7 +86,7 @@ def main():
         model_PANN_predictions.append(model_PANN_pred)
         model_1D_predictions.append(model_1D_pred)
         model_linearSVM_predictions.append(model_linearSVM_pred)
-        ground_truth_predictions.append(ground_truth_pred)
+        #ground_truth_predictions.append(ground_truth_pred)
     # concatenate all loaded predictions
     model_3_predictions=pd.concat(model_3_predictions)
     model_4_predictions = pd.concat(model_4_predictions)
@@ -96,7 +96,7 @@ def main():
     ground_truth_predictions = pd.concat(ground_truth_predictions)
 
     # define, which predictions should be included in this try
-    predictions = [model_3_predictions, model_4_predictions, model_1D_predictions]
+    predictions = [model_3_predictions, model_4_predictions, model_1D_predictions, model_linearSVM_predictions]
     num_predictions = len(predictions)
 
     # load weights
