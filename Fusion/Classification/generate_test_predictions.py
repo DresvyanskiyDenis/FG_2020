@@ -18,7 +18,7 @@ def main():
     path_to_linearSVM_predictions = 'C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\linearSVM_4_2_z_l2_C_0_1\\test\\trained_only_train'
     path_to_videos='E:\\Databases\\AffWild2\\Videos\\'
     path_to_fusion_weights='C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\predictions_for_submission\\' \
-                           'Elena_AffectNet_3_4_and_1DCNN_LinearSVM_4_2_z_l2_C_0_1\\weights_for_fusion.txt'
+                           'Elena_AffectNet_3_4\\weights_for_fusion.txt'
     path_to_output_test_predictions='predictions'
     if not os.path.exists(path_to_output_test_predictions):
         os.makedirs(path_to_output_test_predictions, exist_ok=True)
@@ -45,7 +45,7 @@ def main():
         model_linearSVM_pred = pd.DataFrame(data=model_linearSVM_pred.values)
 
         # define, which predictions should be included in this try
-        predictions = [model_3_pred, model_4_pred, model_1D_pred, model_linearSVM_pred]
+        predictions = [model_3_pred, model_4_pred]
         num_predictions = len(predictions)
         # load weights
         weights = np.loadtxt(path_to_fusion_weights)

@@ -40,7 +40,7 @@ def main():
     path_to_model_4_predictions = 'C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\Pretrained_AffectNet_model_4\\devel'
     path_to_1D_CNN_predictions = 'C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\1D_CNN\\devel'
     path_to_PANN_predictions = 'C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\PANN\\devel'
-    path_to_linearSVM_predictions = 'C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\linearSVM_4_2_z_l2_C_0_1\\'
+    path_to_linearSVM_predictions = 'C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\linearSVM_4_2_z_l2_C_0_1\\validation'
     path_to_ground_truth_predictions = 'E:\\Databases\\AffWild2\\Annotations\\EXPR_Set\\validation\\Aligned_labels\\'
     path_to_videos = 'E:\\Databases\\AffWild2\\Videos\\'
     num_classes = 7
@@ -91,7 +91,7 @@ def main():
     model_linearSVM_predictions = pd.concat(model_linearSVM_predictions)
     ground_truth_predictions = pd.concat(ground_truth_predictions)
 
-    predictions=[model_3_predictions, model_4_predictions,model_1D_predictions, model_linearSVM_predictions]
+    predictions=[model_3_predictions, model_4_predictions]
     num_predictions=len(predictions)
     num_weights=10000
     num_classes=7
@@ -123,7 +123,7 @@ def main():
     path_to_save='C:\\Users\\Denis\\PycharmProjects\\FG_2020\\Predictions\\predictions_for_submission\\'
     if not os.path.exists(path_to_save):
         os.mkdir(path_to_save)
-    folder_to_save='Elena_AffectNet_3_4_and_1DCNN_LinearSVM\\'
+    folder_to_save='Elena_AffectNet_3_4\\'
     if not os.path.exists(path_to_save+folder_to_save):
         os.mkdir(path_to_save+folder_to_save)
     np.savetxt(path_to_save+folder_to_save+'weights_for_fusion.txt', best_weights)
